@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Paperback Web - Encode</title>
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/vendor/tailwind.js"></script>
+</head>
+<body>
+<div class="relative flex h-auto min-h-screen w-full flex-col bg-white overflow-x-hidden" style='font-family: Inter, "Noto Sans", sans-serif;'>
+    <div class="layout-container flex h-full grow flex-col">
+        <header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#f0f2f5] px-10 py-3">
+            <div class="flex items-center gap-4 text-[#101418]">
+                <h2 class="text-[#101418] text-lg font-bold leading-tight tracking-[-0.015em]">Paperback Web</h2>
+            </div>
+        </header>
+        <main class="px-4 sm:px-10 md:px-20 lg:px-40 flex flex-1 justify-center py-5">
+            <div class="layout-content-container flex flex-col max-w-[960px] flex-1">
+                <div class="pb-3">
+                    <div class="flex border-b border-[#dae0e7] px-4 gap-8">
+                        <a id="tab-encode" class="flex flex-col items-center justify-center cursor-pointer"><p class="text-sm font-bold leading-normal tracking-[0.015em]">Encode</p></a>
+                        <a id="tab-decode" class="flex flex-col items-center justify-center cursor-pointer"><p class="text-sm font-bold leading-normal tracking-[0.015em]">Decode</p></a>
+                    </div>
+                </div>
+                <section id="encode-section">
+                    <h2 class="text-[#101418] text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-5">Encode File</h2>
+                    <div id="encode-drop-zone" class="flex flex-col p-4">
+                        <div class="flex flex-col items-center gap-6 rounded-lg border-2 border-dashed border-[#dae0e7] px-6 py-14">
+                            <p class="text-[#101418] text-lg font-bold leading-tight tracking-[-0.015em] text-center">Drag and drop a file here</p>
+                            <p class="text-[#101418] text-sm font-normal leading-normal text-center">or</p>
+                            <label for="file-input" class="flex min-w-[84px] cursor-pointer items-center justify-center rounded-lg h-10 px-4 bg-[#f0f2f5] text-[#101418] text-sm font-bold">Select File</label>
+                            <input type="file" id="file-input" class="hidden" />
+                        </div>
+                    </div>
+                    <div id="encode-file-info" class="flex max-w-[480px] flex-wrap items-end gap-4 px-4 py-3 hidden">
+                        <p class="text-[#101418] text-base font-medium leading-normal w-full pb-2">Selected File:</p>
+                        <p id="file-info-text" class="w-full rounded-lg text-[#101418] border border-[#dae0e7] bg-white h-14 p-[15px] truncate"></p>
+                    </div>
+                    <h3 class="text-[#101418] text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">Configuration</h3>
+                    <div class="p-4 space-y-4">
+                        <div class="flex items-center justify-between gap-4 flex-wrap">
+                            <label for="dpi-slider" class="text-base font-medium">DPI (Dots Per Inch)</label>
+                            <div class="w-full flex items-center gap-4">
+                                <input id="dpi-slider" type="range" min="200" max="1200" value="300" step="50" class="flex-grow">
+                                <span id="dpi-value" class="w-16 text-right font-mono">300</span>
+                            </div>
+                            <p class="text-sm text-gray-500 w-full">Higher DPI increases data density. Recommended setting is half of your scanner's DPI.</p>
+                        </div>
+                        <div class="flex items-center justify-between gap-4 flex-wrap">
+                            <label for="dotsize-slider" class="text-base font-medium">Dot Size</label>
+                            <div class="w-full flex items-center gap-4">
+                                <input id="dotsize-slider" type="range" min="50" max="100" value="70" step="10" class="flex-grow">
+                                <span id="dotsize-value" class="w-16 text-right font-mono">70%</span>
+                            </div>
+                            <p class="text-sm text-gray-500 w-full">The size of each black dot as a percentage of the available space. 70% is recommended.</p>
+                        </div>
+                        <div class="flex items-center justify-between gap-4 flex-wrap">
+                            <label for="redundancy-slider" class="text-base font-medium">Redundancy</label>
+                            <div class="w-full flex items-center gap-4">
+                                <input id="redundancy-slider" type="range" min="2" max="10" value="5" class="flex-grow">
+                                <span id="redundancy-value" class="w-16 text-right font-mono">1 in 5</span>
+                            </div>
+                            <p class="text-sm text-gray-500 w-full">Adds extra data to guard against damage. A value of 5 means 1 redundancy block per 5 data blocks.</p>
+                        </div>
+                        <div class="flex items-center justify-between min-h-14">
+                            <div><p class="text-base">Compression (Gzip)</p><p class="text-sm text-gray-500">Reduces the final bitmap size for most files.</p></div>
+                            <input id="compression-toggle" type="checkbox" class="form-checkbox h-5 w-5 rounded text-blue-600">
+                        </div>
+                        <div class="flex items-center justify-between min-h-14">
+                            <div><p class="text-base">Encryption (AES)</p><p class="text-sm text-gray-500">Secures your data with a password. Cannot be recovered if lost.</p></div>
+                            <input id="encryption-toggle" type="checkbox" class="form-checkbox h-5 w-5 rounded text-blue-600">
+                        </div>
+                        <div id="password-container" class="hidden">
+                            <form onsubmit="return false;"><label for="password-input" class="text-base font-medium pb-2">Password</label><input id="password-input" type="text" placeholder="Enter password (visible)" class="form-input w-full rounded-lg border-[#dae0e7]" autocomplete="off"></form>
+                        </div>
+                    </div>
+                    <div class="flex px-4 py-3 justify-end items-center gap-4">
+                        <div id="spinner" class="hidden w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                        <button id="encode-button" disabled class="flex min-w-[84px] cursor-pointer items-center justify-center rounded-lg h-10 px-4 bg-[#0080ff] text-white text-sm font-bold disabled:bg-gray-400 disabled:cursor-not-allowed">Encode</button>
+                    </div>
+                    <div id="encode-progress-container" class="flex flex-col gap-3 p-4 hidden">
+                        <p id="encode-status-text" class="text-base font-medium">Encoding Progress</p>
+                        <div class="w-full bg-[#dae0e7] rounded-full h-2.5"><div id="encode-progress" class="h-2.5 rounded-full bg-[#101418]" style="width: 0%;"></div></div>
+                    </div>
+                    <h3 class="text-[#101418] text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">Output</h3>
+                    <div id="output-container" class="p-4 space-y-4"></div>
+                </section>
+                <div class="p-4 mt-8">
+                    <h3 class="text-lg font-bold">Status Log</h3>
+                    <pre id="status-log" class="w-full h-40 bg-gray-100 rounded p-2 overflow-y-scroll text-sm font-mono"></pre>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<div id="error-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <h3 class="text-xl font-bold text-red-600 mb-4">An Error Occurred</h3>
+        <p id="error-modal-message" class="text-gray-700 mb-6"></p>
+        <div class="flex justify-end gap-4">
+            <button id="error-modal-dismiss" class="rounded-lg h-10 px-4 bg-gray-200">Dismiss</button>
+            <button id="error-modal-refresh" class="rounded-lg h-10 px-4 bg-red-600 text-white">Refresh Page</button>
+        </div>
+    </div>
+</div>
+<script type="module" src="/js/encode-app.js"></script>
+</body>
+</html>

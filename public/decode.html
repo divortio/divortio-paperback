@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Paperback Web - Decode</title>
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/vendor/tailwind.js"></script>
+</head>
+<body>
+<div class="relative flex h-auto min-h-screen w-full flex-col bg-white overflow-x-hidden" style='font-family: Inter, "Noto Sans", sans-serif;'>
+    <div class="layout-container flex h-full grow flex-col">
+        <header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#f0f2f5] px-10 py-3">
+            <div class="flex items-center gap-4 text-[#101418]">
+                <h2 class="text-[#101418] text-lg font-bold leading-tight tracking-[-0.015em]">Paperback Web</h2>
+            </div>
+        </header>
+        <main class="px-4 sm:px-10 md:px-20 lg:px-40 flex flex-1 justify-center py-5">
+            <div class="layout-content-container flex flex-col max-w-[960px] flex-1">
+                <div class="pb-3">
+                    <div class="flex border-b border-[#dae0e7] px-4 gap-8">
+                        <a id="tab-encode" class="flex flex-col items-center justify-center cursor-pointer"><p class="text-sm font-bold">Encode</p></a>
+                        <a id="tab-decode" class="flex flex-col items-center justify-center cursor-pointer"><p class="text-sm font-bold">Decode</p></a>
+                    </div>
+                </div>
+                <section id="decode-section">
+                    <h2 class="text-[#101418] text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-5">Decode Image(s)</h2>
+                    <div id="decode-drop-zone" class="flex flex-col p-4">
+                        <div class="flex flex-col items-center gap-6 rounded-lg border-2 border-dashed border-[#dae0e7] px-6 py-14">
+                            <p class="text-lg font-bold text-center">Drag and drop image(s) here</p>
+                            <p class="text-sm text-center">or</p>
+                            <label for="image-input" class="cursor-pointer rounded-lg h-10 px-4 bg-[#f0f2f5] text-sm font-bold inline-flex items-center justify-center">Select Image(s)</label>
+                            <input type="file" id="image-input" class="hidden" multiple accept="image/*" />
+                        </div>
+                    </div>
+                    <div id="decode-file-list" class="p-4 hidden"></div>
+                    <div class="flex px-4 py-3 justify-end items-center gap-4">
+                        <div id="spinner" class="hidden w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                        <button id="decode-button" disabled class="flex min-w-[84px] cursor-pointer items-center justify-center rounded-lg h-10 px-4 bg-[#0080ff] text-white text-sm font-bold disabled:bg-gray-400 disabled:cursor-not-allowed">Decode</button>
+                    </div>
+                    <div id="decode-progress-container" class="flex flex-col gap-3 p-4 hidden">
+                        <p id="decode-status-text" class="text-base font-medium">Decoding Progress</p>
+                        <div class="w-full bg-[#dae0e7] rounded-full h-2.5"><div id="decode-progress" class="h-2.5 rounded-full bg-[#101418]" style="width: 0%;"></div></div>
+                    </div>
+                    <h3 class="text-[#101418] text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">Output</h3>
+                    <div id="download-link-container" class="p-4"></div>
+                </section>
+                <div class="p-4 mt-8">
+                    <h3 class="text-lg font-bold">Status Log</h3>
+                    <pre id="status-log" class="w-full h-40 bg-gray-100 rounded p-2 overflow-y-scroll text-sm font-mono"></pre>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<div id="error-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <h3 class="text-xl font-bold text-red-600 mb-4">An Error Occurred</h3>
+        <p id="error-modal-message" class="text-gray-700 mb-6"></p>
+        <div class="flex justify-end gap-4">
+            <button id="error-modal-dismiss" class="rounded-lg h-10 px-4 bg-gray-200">Dismiss</button>
+            <button id="error-modal-refresh" class="rounded-lg h-10 px-4 bg-red-600 text-white">Refresh Page</button>
+        </div>
+    </div>
+</div>
+<script type="module" src="/js/decode-app.js"></script>
+</body>
+</html>
