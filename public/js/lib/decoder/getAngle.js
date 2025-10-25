@@ -31,13 +31,6 @@ export function getXAngle(pdata) {
         for (let i = 0; i < dx; i++) {
             if (nh[i] > 0) h[i] = Math.floor(h[i] / nh[i]);
         }
-        // --- START OF DIAGNOSTIC LOGGING ---
-        if (a === 0) { // Log the histogram for the straight-on (0 degree) scan
-            console.log("--- Vertical Scan Histogram Data (getXAngle) ---");
-            console.log(JSON.stringify(Array.from(h)));
-            console.log("-------------------------------------------------");
-        }
-        // --- END OF DIAGNOSTIC LOGGING ---
 
         const { bestPeak, bestStep, weight } = findPeaks(h, dx);
         const correctedWeight = (weight || 0) + 1.0 / (Math.abs(a) + 10.0);
