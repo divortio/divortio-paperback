@@ -1,13 +1,9 @@
-// src/fileproc/index.js
+// public/js/lib/fileproc/index.js
 
-import { Reporterror, Message } from '../paperbak/user-interface.js';
-import { pb, NFILE, NDATA, min } from '../include/paperbak/index.js';
+import { pb, NFILE, NDATA, min, max } from '../include/paperbak/index.js';
 import { FileProcessor } from './fileManager.js';
 import { recoverData } from './dataRecovery.js';
 import { saveRestoredFile } from './fileSaver.js';
-
-// This array holds the active file processing instances, equivalent to pb_fproc.
-const fileSlots = new Array(NFILE).fill(null);
 
 /**
  * Finds an existing file processing slot or creates a new one for a given superblock.
@@ -18,7 +14,7 @@ export function startNextPage(superblock) {
     let freeslot = -1;
 
     for (let i = 0; i < NFILE; i++) {
-        const pf = fileSlots[i];
+        const pf = pb.fproc[i];
 
         if (!pf || !pf.busy) {
             if (freeslot < 0) freeslot = i;
@@ -28,7 +24,8 @@ export function startNextPage(superblock) {
         // Check if the superblock matches an existing file being processed.
         if (pf.name === superblock.name &&
             pf.mode === superblock.mode &&
-            pf.modified === superblock.modified &&
+            pf.modified.dwLowDateTime === superblock.modified.dwLowDateTime &&
+            pf.modified.dwHighDateTime === superblock.modified.dwHighDateTime &&
             pf.datasize === superblock.datasize &&
             pf.origsize === superblock.origsize)
         {
@@ -43,15 +40,17 @@ export function startNextPage(superblock) {
 
     // No matching file found, create a new one in a free slot.
     if (freeslot < 0) {
-        Reporterror("Maximal number of processed files exceeded.");
+        // This should use the reportError function if available, but it's deep in the library
+        console.error("Maximal number of processed files exceeded.");
         return -1;
     }
 
     try {
-        fileSlots[freeslot] = new FileProcessor(superblock);
+        pb.fproc[freeslot] = new FileProcessor(superblock);
         return freeslot;
     } catch (e) {
-        return -1; // Error during initialization (e.g., low memory)
+        console.error("Low memory: Cannot create new file processor.", e);
+        return -1;
     }
 }
 
@@ -61,12 +60,12 @@ export function startNextPage(superblock) {
  * @param {number} slot - The index of the file processor.
  */
 export function addBlock(block, slot) {
-    const pf = fileSlots[slot];
+    const pf = pb.fproc[slot];
     if (!pf || !pf.busy) return;
 
     if (block.recsize === 0) { // Ordinary data block
         const blockIndex = block.addr / NDATA;
-        if (blockIndex * NDATA !== block.addr || blockIndex >= pf.nblock) return; // Invalid alignment or out of bounds
+        if (blockIndex * NDATA !== block.addr || blockIndex >= pf.nblock) return;
 
         if (pf.datavalid[blockIndex] !== 1) {
             pf.data.set(block.data, block.addr);
@@ -75,14 +74,13 @@ export function addBlock(block, slot) {
         }
     } else { // Data recovery block
         const groupIndex = block.addr / block.recsize;
-        if (groupIndex * block.recsize !== block.addr) return; // Invalid alignment
+        if (groupIndex * block.recsize !== block.addr) return;
 
         const startBlock = block.addr / NDATA;
         for (let j = 0; j < pf.ngroup; j++) {
             const blockIndex = startBlock + j;
-            if (blockIndex >= pf.nblock) return; // Out of bounds
+            if (blockIndex >= pf.nblock) return;
 
-            // Only fill if the slot is currently empty
             if (pf.datavalid[blockIndex] === 0) {
                 pf.data.set(block.data, blockIndex * NDATA);
                 pf.datavalid[blockIndex] = 2; // Mark as valid recovery data
@@ -100,30 +98,28 @@ export function addBlock(block, slot) {
  * @param {number} ngood - Number of good blocks found on the page.
  * @param {number} nbad - Number of bad blocks found on the page.
  * @param {number} nrestored - Number of bytes restored by ECC on the page.
+ * @returns {object|null} - Returns a result object if the file is complete, otherwise null.
  */
 export function finishPage(slot, ngood, nbad, nrestored) {
-    const pf = fileSlots[slot];
-    if (!pf || !pf.busy) return;
+    const pf = pb.fproc[slot];
+    if (!pf || !pf.busy) return null;
 
-    // Update statistics
     pf.goodblocks += ngood;
     pf.badblocks += nbad;
     pf.restoredbytes += nrestored;
 
-    // Attempt to recover missing data using the redundancy blocks
     recoverData(pf);
 
-    // Check if the file is now complete
     if (pf.ndata === pf.nblock) {
-        Message("File restoration complete.", 100);
         if (pb.autosave) {
-            saveRestoredFile(slot);
+            // In a UI context, we don't save automatically. We return the data.
+            // saveRestoredFile(slot, false, { reportError: console.error });
+            const blob = new Blob([pf.data.subarray(0, pf.origsize)], { type: 'application/octet-stream' });
+            closeFproc(slot);
+            return { blob, filename: pf.name };
         }
-        // In a real UI, you would enable a "Save" button here.
-    } else {
-        const missing = pf.nblock - pf.ndata;
-        Message(`Page processed. ${missing} data blocks still missing.`, 99);
     }
+    return null;
 }
 
 /**
@@ -132,6 +128,6 @@ export function finishPage(slot, ngood, nbad, nrestored) {
  */
 export function closeFproc(slot) {
     if (slot >= 0 && slot < NFILE) {
-        fileSlots[slot] = null;
+        pb.fproc[slot] = null;
     }
 }
