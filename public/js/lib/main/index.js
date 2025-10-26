@@ -1,7 +1,7 @@
 // public/js/lib/main/index.js
 
 import { pb } from '../include/paperbak/index.js';
-import { Printfile } from '../printer/index.js';
+import { printFile } from '../printer/index.js';
 import { decodeBitmap } from '../scanner/index.js';
 
 function applyOptions(options = {}) {
@@ -29,7 +29,7 @@ export async function* encode(file, options = {}) {
         throw new Error("No input file selected for encoding.");
     }
     applyOptions(options);
-    const printer = Printfile(file, pb);
+    const printer = printFile(file, pb);
     yield* printer.run();
 }
 

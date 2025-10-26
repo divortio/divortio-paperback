@@ -87,7 +87,7 @@ class Printer {
 
 let currentPrinter = null;
 
-export function Printfile(file, options) {
+export function printFile(file, options) {
     if (currentPrinter && currentPrinter.print.step !== 0) {
         currentPrinter.stop();
     }

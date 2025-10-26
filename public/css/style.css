@@ -6,8 +6,3 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom style for the drag-and-drop hover state */
-.drag-over {
-    border-color: #007BFF;
-    background-color: #f0f8ff;
-}

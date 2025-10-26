@@ -2,7 +2,7 @@
 
 import { Decoder } from '../decoder/index.js';
 import { Message } from '../paperbak/user-interface.js';
-import { decode } from '../../vendor/fast-png/lib/index.js';
+import { decode as bmpDecode } from '../bmpImage/index.js';
 
 /**
  * @typedef {Object} DecodeOptions
@@ -12,8 +12,8 @@ import { decode } from '../../vendor/fast-png/lib/index.js';
  */
 
 /**
- * @typedef {Object} PngData
- * @property {Uint8Array} data - The raw pixel data (RGBA).
+ * @typedef {Object} BmpData
+ * @property {Buffer} data - The raw pixel data (RGBA).
  * @property {number} width - The width of the image in pixels.
  * @property {number} height - The height of the image in pixels.
  */
@@ -36,8 +36,8 @@ function validateBitmap(reportError, width, height) {
 }
 
 /**
- * Converts raw RGBA pixel data into a single-channel 8-bit grayscale array.
- * @param {Uint8Array} rgbaData - The raw RGBA pixel data.
+ * Converts raw RGBA pixel data from a BMP into a single-channel 8-bit grayscale array.
+ * @param {Buffer} rgbaData - The raw RGBA pixel data from the BMP decoder.
  * @param {number} width - The width of the image.
  * @param {number} height - The height of the image.
  * @param {DecodeOptions} options - The decoding options.
@@ -46,13 +46,14 @@ function validateBitmap(reportError, width, height) {
 function processPixelData(rgbaData, width, height, options) {
     const grayscaleData = new Uint8Array(width * height);
 
-    // Apply grayscale conversion using (R+G+B)/3 with truncation,
-    // which is a 1:1 port of the C code's integer division logic (pbits[0]+pbits[1]+pbits[2])/3.
+    // This perfectly matches the 24-bit logic in Scanner.c: (pbits[0]+pbits[1]+pbits[2])/3
+    // where the pixel order is B, G, R. Our bmpDecode provides an RGBA buffer.
+    // We use Math.floor() to correctly emulate C's integer division (truncation).
     for (let i = 0; i < grayscaleData.length; i++) {
         const r = rgbaData[i * 4];
         const g = rgbaData[i * 4 + 1];
         const b = rgbaData[i * 4 + 2];
-        // FIX: Change Math.round() to Math.floor() to correctly emulate C's integer division (truncation).
+        // The alpha channel (rgbaData[i * 4 + 3]) is ignored.
         grayscaleData[i] = Math.floor((r + g + b) / 3);
     }
 
@@ -60,7 +61,7 @@ function processPixelData(rgbaData, width, height, options) {
 }
 
 /**
- * Reads a File object (assumed to be a PNG), decodes it to raw pixel data,
+ * Reads a File object (assumed to be a BMP), decodes it to raw pixel data,
  * converts the data to grayscale, and initializes the PaperBack decoder.
  * @param {File} file - The image file to decode.
  * @param {DecodeOptions} [options={}] - Options for the decoding process.
@@ -85,16 +86,15 @@ export function decodeBitmap(file, options = {}) {
                 /** @type {ArrayBuffer} */
                 const arrayBuffer = e.target.result;
 
-                // Decode the raw buffer with fast-png, bypassing the browser's rendering engine.
-                /** @type {PngData} */
-                const pngData = decode(arrayBuffer);
+                /** @type {BmpData} */
+                const bmpData = bmpDecode(arrayBuffer);
 
-                if (!validateBitmap(reportError, pngData.width, pngData.height)) {
+                if (!validateBitmap(reportError, bmpData.width, bmpData.height)) {
                     return reject(new Error("Invalid bitmap properties."));
                 }
 
                 Message("Bitmap processed. Starting decoder...");
-                const decoder = processPixelData(pngData.data, pngData.width, pngData.height, options);
+                const decoder = processPixelData(bmpData.data, bmpData.width, bmpData.height, options);
                 resolve(decoder);
 
             } catch (err) {

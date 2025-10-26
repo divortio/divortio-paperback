@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             update.bitmaps.forEach(page => {
                                 // --- START OF REFACTOR ---
                                 // Create a Blob from the raw Uint8Array pngData
-                                const blob = new Blob([page.pngData], { type: 'image/png' });
+                                const blob = new Blob([page.pngData], { type: 'image/bmp' });
                                 const imageUrl = URL.createObjectURL(blob);
 
                                 // Create an <img> element for preview
