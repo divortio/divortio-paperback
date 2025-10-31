@@ -5,8 +5,9 @@ import { drawBlock } from './drawBlock.js';
 import { fillBlock } from './fillBlock.js';
 // --- START OF REFACTOR ---
 // Import the encode function from fast-png
-import { encode } from '../../vendor/fast-png/lib/index.js';
+// import { encode } from '../../vendor/fast-png/lib/index.js';
 // --- END OF REFACTOR ---
+import { encode  } from '../bmpImage/index.js';
 
 /**
  * Generates one complete bitmap page as a raw PNG file buffer.
@@ -138,17 +139,15 @@ export function printNextPage(print) {
     }
 
     // Encode the RGBA data into a PNG file buffer using fast-png
-    const pngData = encode({
+    const bmpData = encode({
         width: width,
         height: height,
-        data: rgbaData,
-        channels: 4,
-        depth: 8
+        data: rgbaData
     });
     // --- END OF REFACTOR ---
 
     print.frompage++;
 
     // Return the raw PNG data
-    return { pngData, pageNumber: print.frompage, totalPages, done: false };
+    return { bmpData, pageNumber: print.frompage, totalPages, done: false };
 }

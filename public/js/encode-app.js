@@ -39,7 +39,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const encodeProgress = getElement('encode-progress');
         const encodeStatusText = getElement('encode-status-text');
         const outputContainer = getElement('output-container');
-
+        const headerToggle = getElement('include-header-toggle');
+        const borderToggle = getElement('include-border-toggle');
         let selectedFile = null;
 
         // --- Event Listeners for Controls ---
@@ -89,6 +90,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 compression: compressionToggle.checked ? 1 : 0,
                 encryption: encryptionToggle.checked ? 1 : 0,
                 password: passwordInput.value,
+                printheader: headerToggle.checked ? 1 : 0,
+                printborder: borderToggle.checked ? 1 : 0
             };
 
             if (options.encryption && !options.password) {
@@ -133,13 +136,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         updateProgress(update.status, update.progress);
                     } else if (update.status === 'Complete') {
                         updateProgress("Complete!", 100);
+                        // log(`${link.href} `);
+
                         if (update.bitmaps && update.bitmaps.length > 0) {
                             log(`Generated ${update.bitmaps.length} bitmap(s).`);
 
                             update.bitmaps.forEach(page => {
                                 // --- START OF REFACTOR ---
                                 // Create a Blob from the raw Uint8Array pngData
-                                const blob = new Blob([page.pngData], { type: 'image/bmp' });
+                                const blob = new Blob([page.bmpData], { type: 'image/bmp' });
                                 const imageUrl = URL.createObjectURL(blob);
 
                                 // Create an <img> element for preview
@@ -151,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 // Create a download link
                                 const link = document.createElement('a');
                                 link.href = imageUrl;
-                                link.download = `${selectedFile.name}_page_${page.pageNumber}.png`;
+                                link.download = `${selectedFile.name}_page_${page.pageNumber}.bmp`;
                                 link.textContent = `Download Page ${page.pageNumber}`;
                                 link.className = "block mt-2 bg-blue-500 hover:bg-blue-600 text-white text-center rounded py-2 px-4 font-bold";
 

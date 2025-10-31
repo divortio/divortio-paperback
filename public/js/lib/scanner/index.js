@@ -1,25 +1,26 @@
-// public/js/lib/scanner/index.js
+/**
+ * @file Reads and processes a BMP image file for the decoder.
+ * This module is the equivalent of Scanner.c in the original C implementation.
+ */
 
 import { Decoder } from '../decoder/index.js';
 import { Message } from '../paperbak/user-interface.js';
 import { decode as bmpDecode } from '../bmpImage/index.js';
 
 /**
- * @typedef {Object} DecodeOptions
- * @property {function(string, Error=): void} [reportError] - Function to handle and report errors.
- * @property {boolean} [pb_bestquality=false] - Flag to enable best quality search mode (M_BEST).
- * @property {number} [blockborder=0.0] - Manual setting for the block border (0.0 for auto-select).
+ * @typedef {import('../../decode-app.js').DecodeOptions} DecodeOptions
  */
 
 /**
- * @typedef {Object} BmpData
- * @property {Buffer} data - The raw pixel data (RGBA).
+ * @typedef {object} BmpData
+ * @property {Uint8Array} data - The raw pixel data (RGBA).
  * @property {number} width - The width of the image in pixels.
  * @property {number} height - The height of the image in pixels.
  */
 
 /**
  * Validates the dimensions of the scanned bitmap against the allowed range.
+ * This is a direct port of the validation logic in Scanner.c.
  * @param {function(string): void} reportError - The error reporting function.
  * @param {number} width - The width of the bitmap.
  * @param {number} height - The height of the bitmap.
@@ -36,18 +37,18 @@ function validateBitmap(reportError, width, height) {
 }
 
 /**
- * Converts raw RGBA pixel data from a BMP into a single-channel 8-bit grayscale array.
- * @param {Buffer} rgbaData - The raw RGBA pixel data from the BMP decoder.
+ * Converts raw RGBA pixel data from a 24-bit BMP into a single-channel 8-bit grayscale array.
+ * This function mirrors the grayscale conversion logic in ProcessDIB from Scanner.c.
+ * @param {Uint8Array} rgbaData - The raw RGBA pixel data from the BMP decoder.
  * @param {number} width - The width of the image.
  * @param {number} height - The height of the image.
- * @param {DecodeOptions} options - The decoding options.
- * @returns {Decoder} A new Decoder instance initialized with the grayscale data.
+ * @returns {Uint8Array} A new array containing the 8-bit grayscale pixel data.
  */
-function processPixelData(rgbaData, width, height, options) {
+function processPixelData(rgbaData, width, height) {
     const grayscaleData = new Uint8Array(width * height);
 
-    // This perfectly matches the 24-bit logic in Scanner.c: (pbits[0]+pbits[1]+pbits[2])/3
-    // where the pixel order is B, G, R. Our bmpDecode provides an RGBA buffer.
+    // This loop is a direct 1:1 port of the C code's logic for 24-bit bitmaps:
+    // *pdata++ = (uchar)((pbits[0] + pbits[1] + pbits[2]) / 3);
     // We use Math.floor() to correctly emulate C's integer division (truncation).
     for (let i = 0; i < grayscaleData.length; i++) {
         const r = rgbaData[i * 4];
@@ -57,12 +58,13 @@ function processPixelData(rgbaData, width, height, options) {
         grayscaleData[i] = Math.floor((r + g + b) / 3);
     }
 
-    return new Decoder(grayscaleData, width, height, options);
+    return grayscaleData;
 }
 
 /**
- * Reads a File object (assumed to be a BMP), decodes it to raw pixel data,
- * converts the data to grayscale, and initializes the PaperBack decoder.
+ * Reads a File object (assumed to be a BMP), decodes it, converts it to grayscale,
+ * and initializes the PaperBack decoder. This function is the main entry point
+ * for the scanning process and is equivalent to Decodebitmap in Scanner.c.
  * @param {File} file - The image file to decode.
  * @param {DecodeOptions} [options={}] - Options for the decoding process.
  * @returns {Promise<Decoder>} A promise that resolves with the initialized Decoder instance.
@@ -71,8 +73,8 @@ export function decodeBitmap(file, options = {}) {
     const reportError = options.reportError || ((msg, err) => { console.error(msg, err); alert(msg); });
 
     return new Promise((resolve, reject) => {
-        if (!file || !file.type.startsWith('image/')) {
-            const errorMsg = "Please select a valid image file.";
+        if (!file || file.type !== 'image/bmp') {
+            const errorMsg = "Please select a valid BMP image file.";
             reportError(errorMsg);
             return reject(new Error(errorMsg));
         }
@@ -93,12 +95,15 @@ export function decodeBitmap(file, options = {}) {
                     return reject(new Error("Invalid bitmap properties."));
                 }
 
-                Message("Bitmap processed. Starting decoder...");
-                const decoder = processPixelData(bmpData.data, bmpData.width, bmpData.height, options);
+                Message("Bitmap processed. Converting to grayscale...");
+                const grayscaleData = processPixelData(bmpData.data, bmpData.width, bmpData.height);
+
+                Message("Initializing decoder...");
+                const decoder = new Decoder(grayscaleData, bmpData.width, bmpData.height, options);
                 resolve(decoder);
 
             } catch (err) {
-                const errorMsg = `Unsupported or corrupted image file: ${file.name}`;
+                const errorMsg = `Unsupported or corrupted BMP file: ${file.name}`;
                 reportError(errorMsg, err);
                 reject(err);
             }

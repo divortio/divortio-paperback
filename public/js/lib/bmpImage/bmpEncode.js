@@ -1,3 +1,8 @@
+/**
+ * @file BMP format encoder, encodes 24bit BMP.
+ * This module is an ESM conversion of the original bmp-js encoder,
+ * modified to use browser-native APIs (Uint8Array, DataView) instead of Buffer.
+ */
 
 class BmpEncoder {
     /**
@@ -71,13 +76,15 @@ class BmpEncoder {
 
 /**
  * Encodes RGBA image data into a 24-bit BMP buffer.
+ * The signature is designed to be compatible with the fast-png encoder.
  * @param {object} imgData - Image data object.
- * @param {Uint8ClampedArray|Uint8Array} imgData.data - Raw RGBA pixel data.
+ * @param {Uint8Array} imgData.data - Raw RGBA pixel data.
  * @param {number} imgData.width - The width of the image.
  * @param {number} imgData.height - The height of the image.
- * @returns {{data: Uint8Array, width: number, height: number}}
+ * @returns {Uint8Array} A buffer containing the complete BMP file.
  */
-export function encode(imgData) {
-    const encoder = new BmpEncoder(imgData);
-    return encoder.encode();
+export function encode({ data, width, height }) {
+    const encoder = new BmpEncoder({ data, width, height });
+    // Return only the data buffer, just like the fast-png encoder did.
+    return encoder.encode().data;
 }
