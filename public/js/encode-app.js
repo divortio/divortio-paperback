@@ -1,8 +1,8 @@
 // public/js/encode-app.js
 
-import { initializeLogging } from './shared/logging.js';
-import { initializeNavigation } from './shared/nav.js';
-import { encode } from './lib/main/index.js';
+import { initializeLogging } from './ui/logging.js';
+import { initializeNavigation } from './ui/nav.js';
+import { encode } from '../floppyPaper/lib/main/index.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // This helper function ensures an element exists before we use it.

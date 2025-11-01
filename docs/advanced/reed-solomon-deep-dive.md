@@ -12,7 +12,7 @@ The encoding process is relatively straightforward. Its goal is to take the 96 b
 
 * **Action:** The 96 bytes of data (address, payload, and CRC) are treated as coefficients of a polynomial. This polynomial is then divided by a known "generator polynomial" within the Galois Field. The **remainder** of this division is the 32-byte ECC.
 * **Analogy:** This is mathematically similar to calculating a CRC checksum, but far more powerful. The resulting ECC is not just a hash; it contains complex algebraic relationships to the original data.
-* **Source Code:** The `encode_rs_8` function in [`/public/js/lib/ecc/index.js`](../public/js/lib/ecc/index.js) implements this process.
+* **Source Code:** The `encode_rs_8` function in [`/public/js/lib/ecc/crc16.js`](../public/js/lib/ecc/index.js) implements this process.
 
 ---
 
@@ -44,7 +44,7 @@ The decoding process is far more complex and is the heart of the system's resili
 
 With the location and magnitude of every error known, the decoder simply goes to each corrupted byte and applies the correction. The result is a bit-for-bit perfect restoration of the original 96 bytes of data.
 
-* **Source Code:** The entire decoding pipeline (Syndrome calculation, Berlekamp-Massey, Chien Search, and Forney) is implemented within the `decode_rs_8` function in [`/public/js/lib/ecc/index.js`](../public/js/lib/ecc/index.js).
+* **Source Code:** The entire decoding pipeline (Syndrome calculation, Berlekamp-Massey, Chien Search, and Forney) is implemented within the `decode_rs_8` function in [`/public/js/lib/ecc/crc16.js`](../public/js/lib/ecc/index.js).
 
 <br>
 

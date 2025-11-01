@@ -16,4 +16,4 @@ function decodeApng(data, options) {
 }
 export { decodeApng, decodePng as decode, encodePng as encode };
 export { convertIndexedToRgb } from "./convert_indexed_to_rgb.js";
-//# sourceMappingURL=index.js.map
+//# sourceMappingURL=crc16.js.map

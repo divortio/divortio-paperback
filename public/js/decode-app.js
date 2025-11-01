@@ -1,8 +1,8 @@
 // public/js/decode-app.js
 
-import { initializeLogging } from './shared/logging.js';
-import { initializeNavigation } from './shared/nav.js';
-import { decode } from './lib/main/index.js';
+import { initializeLogging } from './ui/logging.js';
+import { initializeNavigation } from './ui/nav.js';
+import { decode } from '../floppyPaper/lib/main/index.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     function getElement(id) {
