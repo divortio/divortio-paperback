@@ -1,4 +1,3 @@
-// public/js/lib/printer/encrypt.js
 
 import { crc16 } from '../crc16/crc16.js';
 import { Reporterror, Message } from '../logging/log.js';
@@ -10,7 +9,7 @@ import { Stopprinting } from './print.js';
  * @returns {Promise<void>}
  */
 export async function encryptData(print) {
-    print.bufcrc = crc16(print.buf.subarray(0, print.alignedsize));
+    print.bufcrc = crc16(print.buf, print.alignedsize);
 
     if (print.encryption === 0) {
         print.step++;
@@ -41,7 +40,7 @@ export async function encryptData(print) {
         const key = await crypto.subtle.deriveKey(
             { name: "PBKDF2", salt, iterations: 524288, hash: "SHA-256" },
             keyMaterial,
-            { name: "AES-CBC", length: 256 },
+            { name: "AES-CBC", length: 128 },
             true,
             ["encrypt"]
         );

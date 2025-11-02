@@ -28,7 +28,7 @@ export function initializeLogging() {
     }
 
     function reportError(userMessage, error) {
-        log(`ERROR: ${userMessage}`, 'error');
+        log(`ERROR: ${userMessage}\n${error}`, 'error');
         if (error) {
             console.error("Underlying Error:", error);
         }

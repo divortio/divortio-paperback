@@ -182,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
         log("Encode page initialized successfully.");
     } catch (error) {
         // The error modal is now handled by the imported reportError function
-        const { reportError } = initializeLogging();
+        const { log, reportError } = initializeLogging();
         reportError("A critical error occurred while loading the Encode page. Please check the console for details and refresh.", error);
     }
 });

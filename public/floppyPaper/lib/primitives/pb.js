@@ -16,13 +16,12 @@ export const pb = {
 
     // Decoder settings
     orientation: -1,
-
+    password: null, // Holds the password for decryption
     // User Interface / Settings
     infile: '',
     outbmp: '',
     inbmp: '',
     outfile: '',
-    password: '',
     dpi: 200,
     dotpercent: 70,
     compression: 0, // 0: none, 1: fast, 2: maximal

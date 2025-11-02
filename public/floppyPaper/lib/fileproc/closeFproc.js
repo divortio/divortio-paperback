@@ -7,6 +7,7 @@
 
 import {NFILE} from '../primitives/constants.js';
 
+import { pb_fproc } from './fileState.js';
 
 /**
  * Clears a file processor slot and frees its large buffers.

@@ -28,27 +28,28 @@ import { finishDecoding } from './finishDecoding.js';
  * Corresponds to `Nextdataprocessingstep` in `Decoder.c`.
  *
  * @param {PData} pdata - The processing data object for the current decoding operation.
- * @returns {void}
+ * @returns {Promise<object|null>} A promise that resolves to { blob, filename } if the file
+ * is complete, or null otherwise.
  */
-export function nextDataProcessingStep(pdata) {
+export async function nextDataProcessingStep(pdata) {
     // C: if (pdata==NULL) return;
     if (!pdata) {
-        return; // Invalid data descriptor
+        return null;
     }
 
     // C: switch (pdata->step) {
     switch (pdata.step) {
-        // C: case 0: return;
+        // C: case 0:
         case 0: // Idle data
-            return;
+            // C: return;
+            return null;
 
         // C: case 1:
-        case 1: // Remove previous images (JS/UI equivalent: initialization)
+        case 1: // Remove previous images (JS: setup)
             // C: //SetWindowPos(hwmain,HWND_TOP,0,0,0,0,
             // C: //  SWP_NOMOVE|SWP_NOSIZE|SWP_SHOWWINDOW);
             // C: //Initqualitymap(0,0);
             // C: //Displayblockimage(NULL,0,0,0,NULL);
-            // (UI-specific init logic would go here)
             // C: pdata->step++;
             pdata.step++;
             // C: break;
@@ -109,13 +110,15 @@ export function nextDataProcessingStep(pdata) {
         // C: case 8:
         case 8: // Finish data decoding
             // C: Finishdecoding(pdata);
-            finishDecoding(pdata);
-            // C: break;
-            break;
+            // We await this now, as it returns a promise with the final result
+            return await finishDecoding(pdata);
+        // C: break;
 
         // C: default: break;
         default: // Internal error
             break;
     }
-    // C: //if (pdata->step==0) Updatebuttons(); // Right or wrong, decoding finished
+    // C: //if (pdata->step==0) Updatebuttons();
+
+    return null; // No result yet, state machine is still running
 }

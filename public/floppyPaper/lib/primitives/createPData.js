@@ -3,7 +3,7 @@ import {createSuperblock} from "./createSuperBlock.js";
 /**
  * Creates a new, zero-filled t_procdata object (decoder state).
  * C: t_procdata
- * @returns {import('../decoder/getAngle.js').PData}
+ * @returns {import('./index.js').PData}
  */
 export function createPData() {
     return {

@@ -2,13 +2,14 @@
 
 import { Reporterror, Message } from '../logging/log.js';
 import { Stopprinting } from './print.js';
+import { gzip } from '../../vendor/pako/dist/pako.esm.js';
 
 /**
- * Compresses the file data using the built-in Web Compression API (gzip).
+ * Compresses the file data using pako (gzip).
  * @param {object} print - The main print data object.
- * @returns {Promise<void>}
+ * @returns {void}
  */
-export async function compressFile(print) {
+export function compressFile(print) {
     // If no compression is requested, just copy the raw buffer and move on.
     if (print.compression === 0) {
         Message("Reading file (compression disabled)", 100);
@@ -21,12 +22,9 @@ export async function compressFile(print) {
     Message("Compressing file...", 50);
 
     try {
-        // Use the native Compression Streams API for gzip
-        const stream = new Blob([print.rawFileBuffer]).stream();
-        const compressedStream = stream.pipeThrough(new CompressionStream('gzip'));
-        const compressedData = await new Response(compressedStream).arrayBuffer();
-
-        const compressedArray = new Uint8Array(compressedData);
+        // Use pako for compression (platform-independent)
+        // Pass a Uint8Array view of the raw ArrayBuffer
+        const compressedArray = gzip(new Uint8Array(print.rawFileBuffer));
 
         // Check if compression was effective. If not, use the original data.
         if (compressedArray.length >= print.origsize) {
@@ -54,8 +52,7 @@ export async function compressFile(print) {
         print.step = 5; // Move to encryption step
 
     } catch (e) {
-        Reporterror("Unable to compress data. " + e.message);
+        Reporterror("Unable to compress data: " + e.message);
         Stopprinting(print);
-        throw e;
     }
 }

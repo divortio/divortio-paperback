@@ -21,8 +21,10 @@ import {finishPage} from '../../fileproc/finishPage.js';
  * Corresponds to `Finishdecoding` in `Decoder.c`.
  *
  * @param {PData} pdata - The processing data object containing all decoded blocks.
+ * @returns {Promise<object|null>} A promise that resolves to { blob, filename } if the file
+ * is complete, or null otherwise.
  */
-export function finishDecoding(pdata) {
+export async function finishDecoding(pdata) {
     // C: int i,fileindex;
 
     // C: // Pass gathered data to file processor.
@@ -32,6 +34,7 @@ export function finishDecoding(pdata) {
     if (pdata.superblock.addr === 0) {
         // C: Reporterror("Page label is not readable");
         Reporterror("Page label is not readable");
+        pdata.step = 0; // Still need to stop processing
     } else {
         // C: fileindex=Startnextpage(&pdata->superblock);
         // We pass the superblock object by reference.
@@ -48,16 +51,16 @@ export function finishDecoding(pdata) {
 
             // C: Finishpage(fileindex,
             // C:   pdata->ngood+pdata->nsuper,pdata->nbad,pdata->nrestored);
-            finishPage(fileindex,
+            const result = await finishPage(fileindex,
                 pdata.ngood + pdata.nsuper, pdata.nbad, pdata.nrestored);
 
-            // C: ;
+            pdata.step = 0; // Page processed.
+            return result; // Pass the result up
         }
-        // C: };
     }
 
-    // C: // Page processed.
-    // C: pdata->step=0;
+    // Page processed.
+    // C: pdata.step=0;
     pdata.step = 0;
-    // C: };
+    return null; // No file was completed on this page
 }
