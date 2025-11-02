@@ -1,6 +1,6 @@
 // src/printer/fillBlock.js
 
-import { NDOT } from '../include/paperbak/constants.js';
+import { NDOT } from '../primitives/constants.js';
 
 /**
  * Fills a block area with a regular alignment raster pattern, clipping to the bitmap edges.

@@ -10,7 +10,7 @@
  * get progress updates.
  */
 
-import { pb } from '../include/paperbak/index.js';
+import { pb } from '../primitives/pb.js';
 import { Reporterror } from '../logging/log.js';
 // This is the actual C port from Scanner.c
 import { decodeBitmap } from './decodeBitmap.js';
@@ -53,7 +53,7 @@ export async function decodeBitmapFile(file, options) {
         //  a) Parse the BMP headers
         //  b) Call `processDIB` to create the grayscale buffer
         //  c) Call `initializeDecoder` which creates the `pdata` state
-        //     inside the `decoder/index.js` module.
+        //     inside the `decoder/print.js` module.
         const result = decodeBitmap(buffer, pb_bestquality);
 
         if (result === -1) {

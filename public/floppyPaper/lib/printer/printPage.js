@@ -1,7 +1,7 @@
 // public/js/lib/printer/printPage.js
 
-import {NDATA, NDOT} from '../include/paperbak/constants.js';
-import {max, min} from '../include/paperbak/utils.js';
+import {NDATA, NDOT} from '../primitives/constants.js';
+import {max, min} from '../primitives/utils.js';
 import {drawBlock} from './drawBlock.js';
 import {fillBlock} from './fillBlock.js';
 

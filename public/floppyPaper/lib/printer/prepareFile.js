@@ -1,9 +1,9 @@
 // src/printer/prepareFile.js
 
 import { Reporterror } from '../logging/log.js';
-import {MAXSIZE } from '../include/paperbak/constants.js';
-import { Stopprinting } from './index.js'; // Assuming Stopprinting will be in the main index
-import { pb } from '../include/paperbak/state.js'; // Assuming Stopprinting will be in the main index
+import {MAXSIZE } from '../primitives/constants.js';
+import { Stopprinting } from './print.js'; // Assuming Stopprinting will be in the main index
+import { pb } from '../primitives/pb.js'; // Assuming Stopprinting will be in the main index
 
 /**
  * Prepares the input file for printing by reading its metadata and content.

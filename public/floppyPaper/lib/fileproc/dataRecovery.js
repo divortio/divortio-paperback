@@ -6,7 +6,7 @@
  */
 
 
-import {NDATA} from '../include/paperbak/constants.js';
+import {NDATA} from '../primitives/constants.js';
 
 
 /**

@@ -2,7 +2,7 @@
 
 import { crc16 } from '../../crc16/crc16.js';
 import { decode8 } from '../../ecc/decode8.js';
-import { NDATA, NDOT, M_BEST } from '../../include/paperbak/constants.js';
+import { NDATA, NDOT, M_BEST } from '../../primitives/constants.js';
 
 let lastgood = 0;
 

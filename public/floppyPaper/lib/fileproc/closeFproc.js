@@ -5,7 +5,7 @@
  * large associated buffers by setting them to null.
  */
 
-import {NFILE} from '../include/paperbak/constants.js';
+import {NFILE} from '../primitives/constants.js';
 
 
 /**

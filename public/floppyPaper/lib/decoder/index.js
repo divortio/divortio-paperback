@@ -6,7 +6,7 @@
  * This replaces the old monolithic Decoder class.
  */
 
-import { createPData } from '../include/paperbak/createPData.js';
+import { createPData } from '../primitives/createPData.js';
 import { startBitmapDecoding, stopBitmapDecoding } from './src/startBitmapDecoding.js';
 import { nextDataProcessingStep } from './src/nextDataProcessingStep.js';
 

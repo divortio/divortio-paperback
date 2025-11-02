@@ -1,7 +1,7 @@
 // public/js/lib/decoder/getGridIntensity.js
 
 import { Reporterror } from '../../logging/log.js';
-import { min, max } from '../../include/paperbak/utils.js';
+import { min, max } from '../../primitives/utils.js';
 
 const NHYST = 1024;
 

@@ -5,10 +5,10 @@
  * necessary buffers (as TypedArrays) on the pdata object before decoding starts.
  */
 
-import { NDOT } from '../../include/paperbak/constants.js';
-import { max } from '../../include/paperbak/utils.js';
-import {  createSuperblock } from '../../include/paperbak/createSuperBlock.js';
-import {  createBlock } from '../../include/paperbak/createBlock.js';
+import { NDOT } from '../../primitives/constants.js';
+import { max } from '../../primitives/utils.js';
+import {  createSuperblock } from '../../primitives/createSuperBlock.js';
+import {  createBlock } from '../../primitives/createBlock.js';
 import { Reporterror } from '../../logging/log.js';
 
 /**

@@ -4,7 +4,7 @@
  * These functions control the lifecycle of the decoding process.
  */
 
-import { M_BEST } from '../../include/paperbak/constants.js';
+import { M_BEST } from '../../primitives/constants.js';
 // We need freeProcData to clear any previous run's buffers,
 // just like the C code.
 import { freeProcData } from './freeProcData.js';

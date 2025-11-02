@@ -1,7 +1,7 @@
 // src/decoder/getGridPosition.js
 import { Reporterror } from '../../logging/log.js';
-import {  max, min } from '../../include/paperbak/utils.js';
-import { NDOT } from '../../include/paperbak/constants.js';
+import {  max, min } from '../../primitives/utils.js';
+import { NDOT } from '../../primitives/constants.js';
 /**
  * Determines the rough position of the data grid within the bitmap.
  * @param {object} pdata - The processing data object.

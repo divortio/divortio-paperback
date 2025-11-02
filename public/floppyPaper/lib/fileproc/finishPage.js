@@ -7,7 +7,7 @@
  */
 
 import { pb_fproc } from './fileState.js';
-import { NDATA, NFILE } from '../include/paperbak/constants.js';
+import { NDATA, NFILE } from '../primitives/constants.js';
 import { Message } from '../logging/log.js';
 import { recoverData } from './dataRecovery.js';
 import { saveRestoredFile } from './fileSaver.js';

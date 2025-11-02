@@ -45,7 +45,7 @@ Recovering a digital file from a printed qdPaper page is a reverse-engineering c
     * **Decompression:** If the data was compressed, it is now decompressed using the Gzip algorithm.
     * **Decryption:** If the data was encrypted, the user-provided password is used to decrypt it with AES.
 * **Analogy:** This is the final "unwrapping" of the file—first unzipping it, then unlocking it.
-* **Source Code:** [`/public/js/lib/printer/compression.js`](../public/floppyPaper/lib/printer/compression.js), [`/public/js/lib/printer/encryption.js`](../public/floppyPaper/lib/printer/encryption.js)
+* **Source Code:** [`/public/js/lib/printer/compression.js`](../public/floppyPaper/lib/printer/compression.js), [`/public/js/lib/printer/encrypt.js`](../public/floppyPaper/lib/printer/encryption.js)
 
 The result is a bit-for-bit perfect copy of the original digital file.
 

@@ -1,7 +1,7 @@
 // public/js/lib/main/crc16.js
 
-import { pb } from '../include/paperbak/index.js';
-import { printFile } from '../printer/index.js';
+import { pb } from '../primitives/pb.js';
+import { printFile } from '../printer/print.js';
 import { decodeBitmapFile } from '../scanner/index.js';
 
 function applyOptions(options = {}) {

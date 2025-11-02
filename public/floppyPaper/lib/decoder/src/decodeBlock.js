@@ -7,8 +7,8 @@
 
 import { findPeaks } from './findPeaks.js';
 import { recognizeBits } from './recognizeBits.js';
-import { M_BEST, NDOT } from '../../include/paperbak/constants.js';
-import { max, min} from '../../include/paperbak/utils.js'
+import { M_BEST, NDOT } from '../../primitives/constants.js';
+import { max, min} from '../../primitives/utils.js'
 
 
 /**

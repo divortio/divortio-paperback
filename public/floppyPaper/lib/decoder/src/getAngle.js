@@ -1,7 +1,7 @@
 // public/js/lib/decoder/getAngle.js (Fixed for C integer truncation fidelity)
 
 import { findPeaks } from './findPeaks.js';
-import { NDOT } from '../../include/paperbak/constants.js';
+import { NDOT } from '../../primitives/constants.js';
 
 const NHYST = 1024;
 

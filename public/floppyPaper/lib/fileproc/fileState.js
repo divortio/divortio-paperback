@@ -6,7 +6,7 @@
  */
 
 
-import {NFILE} from '../include/paperbak/constants.js';
+import {NFILE} from '../primitives/constants.js';
 
 /**
  * The array of in-progress file processing slots.

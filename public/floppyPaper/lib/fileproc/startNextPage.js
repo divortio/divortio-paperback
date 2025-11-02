@@ -6,13 +6,13 @@
  */
 
 import { pb_fproc } from './fileState.js';
-import { NDATA, NFILE } from '../include/paperbak/constants.js';
-import { createFproc } from '../include/paperbak/createFproc.js';
+import { NDATA, NFILE } from '../primitives/constants.js';
+import { createFproc } from '../primitives/createFproc.js';
 import { Reporterror } from '../logging/log.js';
 
 /**
- * @typedef {import('../include/paperbak/createSuperBlock.js').t_superblock} t_superblock
- * @typedef {import('../include/paperbak/createFproc.js').t_fproc} t_fproc
+ * @typedef {import('../primitives/createSuperBlock.js').t_superblock} t_superblock
+ * @typedef {import('../primitives/createFproc.js').t_fproc} t_fproc
  */
 
 /**

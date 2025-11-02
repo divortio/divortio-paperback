@@ -1,8 +1,8 @@
-// public/js/lib/printer/encryption.js
+// public/js/lib/printer/encrypt.js
 
 import { crc16 } from '../crc16/crc16.js';
 import { Reporterror, Message } from '../logging/log.js';
-import { Stopprinting } from './index.js';
+import { Stopprinting } from './print.js';
 
 /**
  * Encrypts the data buffer using AES-256-CBC if encryption is enabled.

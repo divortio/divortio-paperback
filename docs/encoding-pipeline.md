@@ -20,7 +20,7 @@ The process of converting a digital file into a printable qdPaper image is a mul
 
 * **Action:** If enabled, the (potentially compressed) data is encrypted using AES.
 * **Purpose:** To secure the data. Without the correct password, the scanned data is indecipherable. This is a direct port of the feature from the original Paperbak application.
-* **Source Code:** [`/public/js/lib/printer/encryption.js`](../public/floppyPaper/lib/printer/encryption.js)
+* **Source Code:** [`/public/js/lib/printer/encrypt.js`](../public/floppyPaper/lib/printer/encryption.js)
 
 ### 4. Data Framing & Blocking
 

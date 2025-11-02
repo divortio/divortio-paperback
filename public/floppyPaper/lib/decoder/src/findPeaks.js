@@ -1,6 +1,6 @@
 // public/js/lib/decoder/findPeaks.js
 
-import { max } from '../../include/paperbak/utils.js';
+import { max } from '../../primitives/utils.js';
 
 const NHYST = 1024;
 const NPEAK = 32;

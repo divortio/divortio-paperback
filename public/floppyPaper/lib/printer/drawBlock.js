@@ -2,7 +2,7 @@
 
 import { crc16 } from '../crc16/crc16.js';
 import { encode8 } from '../ecc/encode8.js';
-import { NDATA, NDOT } from '../include/paperbak/constants.js';
+import { NDATA, NDOT } from '../primitives/constants.js';
 
 /**
  * Puts a block of data onto the bitmap as a 32x32 grid of dots.

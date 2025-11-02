@@ -7,9 +7,9 @@
 
 import { pb_fproc} from './fileState.js';
 
-import {NDATA, NFILE} from '../include/paperbak/constants.js';
+import {NDATA, NFILE} from '../primitives/constants.js';
 
-import {min, max} from '../include/paperbak/utils.js';
+import {min, max} from '../primitives/utils.js';
 
 /**
  * @typedef {import('../include/paperbak/index.js').t_block} t_block

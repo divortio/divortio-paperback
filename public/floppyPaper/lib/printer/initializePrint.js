@@ -7,10 +7,10 @@ import {
     PBM_ENCRYPTED,
     NDATA,
     NDOT
-} from '../include/paperbak/constants.js';
-import {pb} from '../include/paperbak/state.js';
-import {min, max} from '../include/paperbak/utils.js';
-import { Stopprinting } from './index.js';
+} from '../primitives/constants.js';
+import {pb} from '../primitives/pb.js';
+import {min, max} from '../primitives/utils.js';
+import { Stopprinting } from './print.js';
 
 /**
  * Prepares for printing by calculating all layout parameters and creating the bitmap structure.

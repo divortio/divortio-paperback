@@ -1,7 +1,7 @@
 // src/printer/compression.js
 
 import { Reporterror, Message } from '../logging/log.js';
-import { Stopprinting } from './index.js';
+import { Stopprinting } from './print.js';
 
 /**
  * Compresses the file data using the built-in Web Compression API (gzip).

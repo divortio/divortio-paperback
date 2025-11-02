@@ -8,7 +8,7 @@
  */
 
 import { decodeBlock } from './decodeBlock.js';
-import { NDATA, SUPERBLOCK } from '../../include/paperbak/constants.js';
+import { NDATA, SUPERBLOCK } from '../../primitives/constants.js';
 
 
 // The 'Message' function from the original C code (paperbak.c)

@@ -5,7 +5,7 @@
  * decryption, decompression, and saving the file to disk.
  */
 
-import {NFILE, PBM_ENCRYPTED, PBM_COMPRESSED} from '../include/paperbak/constants.js';
+import {NFILE, PBM_ENCRYPTED, PBM_COMPRESSED} from '../primitives/constants.js';
 import { pb_fproc } from './fileState.js';
 import { closeFproc } from './closeFproc.js';
 
