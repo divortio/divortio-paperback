@@ -31,12 +31,16 @@ export function getGridPosition(pdata) {
             let cmin = data[offset];
             let cmax = data[offset];
 
+            // C: c=pd[2]; cmin=min(cmin,c); cmax=max(cmax,c);
             cmax = max(cmax, data[offset + 2]);
             cmin = min(cmin, data[offset + 2]);
+            // C: c=pd[sizex+1]; cmin=min(cmin,c); cmax=max(cmax,c);
             cmax = max(cmax, data[offset + sizex + 1]);
             cmin = min(cmin, data[offset + sizex + 1]);
+            // C: c=pd[2*sizex]; cmin=min(cmin,c); cmax=max(cmax,c);
             cmax = max(cmax, data[offset + 2 * sizex]);
             cmin = min(cmin, data[offset + 2 * sizex]);
+            // C: c=pd[2*sizex+2]; cmin=min(cmin,c); cmax=max(cmax,c);
             cmax = max(cmax, data[offset + 2 * sizex + 2]);
             cmin = min(cmin, data[offset + 2 * sizex + 2]);
 
@@ -50,7 +54,9 @@ export function getGridPosition(pdata) {
     for (let i = 0; i < nx; i++) {
         if (distrx[i] > limit) limit = distrx[i];
     }
-    limit /= 2;
+    // C: limit/=2; (Integer division)
+    // ** BUG FIX **: Replicate C's integer division
+    limit = Math.floor(limit / 2);
 
     let gridxmin = 0;
     for (let i = 0; i < nx - 1; i++) {
@@ -74,7 +80,9 @@ export function getGridPosition(pdata) {
     for (let j = 0; j < ny; j++) {
         if (distry[j] > limit) limit = distry[j];
     }
-    limit /= 2;
+    // C: limit/=2; (Integer division)
+    // ** BUG FIX **: Replicate C's integer division
+    limit = Math.floor(limit / 2);
 
     let gridymin = 0;
     for (let j = 0; j < ny - 1; j++) {
@@ -94,5 +102,6 @@ export function getGridPosition(pdata) {
     }
     pdata.gridymax = gridymax;
 
+    // Step finished.
     pdata.step++;
 }

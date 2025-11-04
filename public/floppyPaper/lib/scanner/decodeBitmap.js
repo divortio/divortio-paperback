@@ -33,57 +33,39 @@ export function decodeBitmap(pdata, fileBuffer, pb_bestquality) {
     // C: char s[TEXTLEN+MAXPATH],fil[MAXFILE],ext[MAXEXT];
     // C: ...
     // C: sprintf(s,"Reading %s%s...",fil,ext);
-    // C: Message(s,0);
-    Message("Reading bitmap...", 0);
-    // C: //Updatebuttons();
+    Message(`[0%] Reading bitmap...`);
 
-    // C: // Open file and verify that this is the valid bitmap of known type.
-    // C: f=fopen(pb_inbmp,"rb");
-    // C: i=fread(buf,1,sizeof(buf),f);
-    // ... all C file I/O and manual parsing is replaced by bmpDecode ...
-    const image = decode(fileBuffer);
-
-    // C: if (f==NULL) { ... return -1; };
-    // C: if (i!=sizeof(buf)) { ... return -1; };
-    if (!image || !image.header) {
-        // C: sprintf(s,"Unable to read %s%s",fil,ext);
-        // C: Reporterror(s);
-        Reporterror("Unable to read or parse bitmap file.");
-        return -1;
+    let bmpData;
+    try {
+        // This call returns { data: Uint8Array, width: number, height: number }
+        // The data is 32-bit RGBA.
+        // bmpDecode.js throws an error if the file is not a valid BMP.
+        bmpData = decode(fileBuffer);
+    } catch (e) {
+        // If the bmpDecode library fails, we throw our own error.
+        throw new Error(`Unable to read or parse bitmap file. Original error: ${e.message}`);
     }
 
-    // C: pbfh=(BITMAPFILEHEADER *)buf;
-    // C: pbih=(BITMAPINFOHEADER *)(buf+sizeof(BITMAPFILEHEADER));
-    // We get the header info directly from the bmpDecode result.
-    const pbih = image.header;
-
-    // C: if (pbfh->bfType!=CHAR_BM || ...
-    // Note: The `bmpDecode` library already checks the 'BM' magic number (bfType).
-    // We just need to port the validation checks for the BITMAPINFOHEADER.
+    // C: if (pbfh->bfType!=CHAR_BM ||
+    //    pbih->biSize!=sizeof(BITMAPINFOHEADER) || pbih->biPlanes!=1 ||
+    //    (pbih->biBitCount!=8 && pbih->biBitCount!=24) ||
+    //    (pbih->biBitCount==24 && pbih->biClrUsed!=0) ||
+    //    pbih->biCompression!=BI_RGB ||
+    //    pbih->biWidth<128 || pbih->biWidth>32768 ||
+    //    pbih->biHeight<128 || pbih->biHeight>32768
+    // ) {
+    // We only validate the dimensions, as bmpDecode.js has already validated the format
+    // and converted the pixel data.
     if (
-        // C: pbih->biSize!=sizeof(BITMAPINFOHEADER) || pbih->biPlanes!=1 ||
-        // (biSize is checked by bmpDecode)
-        (pbih.biPlanes !== 1) ||
-
-        // C: (pbih->biBitCount!=8 && pbih->biBitCount!=24) ||
-        (pbih.biBitCount !== 8 && pbih.biBitCount !== 24) ||
-
-        // C: (pbih->biBitCount==24 && pbih->biClrUsed!=0) ||
-        (pbih.biBitCount === 24 && pbih.biClrUsed !== 0) ||
-
-        // C: pbih->biCompression!=BI_RGB ||
-        (pbih.biCompression !== BI_RGB) ||
-
         // C: pbih->biWidth<128 || pbih->biWidth>32768 ||
-        (pbih.biWidth < 128 || pbih.biWidth > 32768) ||
+        (bmpData.width < 128 || bmpData.width > 32768) ||
 
         // C: pbih->biHeight<128 || pbih->biHeight>32768
-        (pbih.biHeight < 128 || pbih.biHeight > 32768)
+        (bmpData.height < 128 || bmpData.height > 32768)
     ) {
-        // C: sprintf(s,"Unsupported bitmap type: %s%s",fil,ext);
+        // C: sprintf(s,"Unsupported bitmap type: %s%s\",fil,ext);
         // C: Reporterror(s);
-        Reporterror(`Unsupported bitmap type. Must be 8-bit or 24-bit uncompressed, 
-            with dimensions between 128x128 and 32768x32768.`);
+        Reporterror(`Unsupported bitmap dimensions. Must be between 128x128 and 32768x32768 pixels.`);
         // C: fclose(f); return -1; };
         return -1;
     }
@@ -95,19 +77,11 @@ export function decodeBitmap(pdata, fileBuffer, pb_bestquality) {
     // C: if (data==NULL) { ... }
     // C: fseek(f,sizeof(BITMAPFILEHEADER),SEEK_SET);
     // C: i=fread(data,1,size,f);
-    // C: fclose(f);
-    // C: if (i!=size) { ... }
-    // (All C memory allocation and file reading is handled by bmpDecode)
+    //
+    // JS: The `bmpData` object from `bmpDecode` already contains the pixel data.
+    // The `processDIB` function will access it via `bmpData.data`.
 
-    // C: // Process bitmap.
-    // C: ProcessDIB(data,pbfh->bfOffBits-sizeof(BITMAPFILEHEADER));
-    // In our port, we pass the *parsed image object* to processDIB,
-    // which is much cleaner than passing the raw data and an offset.
-    const result = processDIB(pdata, image, pb_bestquality);
-
-    // C: free(data);
-    // (No manual free needed in JS)
-
-    // C: return 0;
-    return result;
+    // C: Processdib(pbih,data,pdata);
+    // We now pass the {data, width, height} object to processDIB
+    return processDIB(pdata, bmpData, pb_bestquality);
 }

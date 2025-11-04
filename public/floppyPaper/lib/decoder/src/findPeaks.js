@@ -1,4 +1,5 @@
 // public/js/lib/decoder/findPeaks.js
+// THIS FILE INCLUDES ALL CRITICAL NUMERICAL FIXES
 
 import { max } from '../../primitives/utils.js';
 
@@ -33,140 +34,136 @@ export function findPeaks(h, n) {
         if (h[i] > amax) amax = h[i];
     }
 
-    // 2. Remove gradients by shadowing over 32 pixels (smoothing).
-    const l = new Int32Array(NHYST); // This acts as the smoothed, inverted histogram
+    // 2. Remove gradients by shadowing over 32 pixels.
+    // C: d=(amax-amin+16)/32;
     const d = Math.floor((amax - amin + 16) / 32);
+    const l = new Int32Array(NHYST);
     let ampl = h[0];
     for (let i = 0; i < n; i++) {
-        // ampl = max(ampl-d, h[i]);
         ampl = max(ampl - d, h[i]);
         l[i] = ampl;
     }
 
-    // Second pass to finalize the inverted profile (l[i] = smoothed[i] - h[i]).
-    amax = 0;
+    let amax_shadow = 0;
     for (let i = n - 1; i >= 0; i--) {
-        // ampl = max(ampl-d, l[i]);
         ampl = max(ampl - d, l[i]);
         l[i] = ampl - h[i];
-        amax = max(amax, l[i]);
+        amax_shadow = max(amax_shadow, l[i]);
     }
 
-    // 3. Find peaks (valleys in the original image intensity).
-    const limit = Math.floor(amax * 3 / 4) || 1; // Limit is 3/4 of the highest peak's amplitude.
+    // 3. Set peak limit to 3/4 of the highest peak's amplitude.
+    let limit = Math.floor(amax_shadow * 3 / 4);
+    if (limit === 0) limit = 1;
 
-    const peaks = []; // Floating-point peak position (moment / area)
-    const heights = []; // Max amplitude of the peak (amax)
+    // 4. Find all peaks.
     let i = 0;
+    let npeak = 0;
+    const peaks = new Float32Array(NPEAK);
+    const weights = new Float32Array(NPEAK);
+    const heights = new Int32Array(NPEAK);
 
-    // Skip incomplete first peak.
     while (i < n && l[i] > limit) i++;
 
-    let strongestPeakHeight = 0;
-    while (i < n && peaks.length < NPEAK) {
-        // Find next peak.
+    while (i < n && npeak < NPEAK) {
         while (i < n && l[i] <= limit) i++;
 
-        let area = 0, moment = 0, peakAmax = 0;
-        const startI = i;
+        let area = 0.0;
+        let moment = 0.0;
+        let peak_amax = 0;
 
-        // Calculate peak parameters.
         while (i < n && l[i] > limit) {
-            ampl = l[i] - limit;
-            area += ampl;
-            moment += ampl * i;
-            peakAmax = max(peakAmax, l[i]);
+            const peak_ampl = l[i] - limit;
+            area += peak_ampl;
+            moment += peak_ampl * i;
+            peak_amax = max(peak_amax, l[i]);
             i++;
         }
 
-        // Don't process incomplete peaks.
         if (i >= n) break;
 
-        // Add peak to the list, removing weak artefacts.
-        if (peaks.length > 0) {
-            // artifact check 1: if peak is 8x smaller than previous, skip.
-            if (peakAmax * 8 < heights[heights.length - 1]) continue;
-            // artifact check 2: if peak is 8x larger than previous, replace previous.
-            if (peakAmax > heights[heights.length - 1] * 8) {
-                peaks.pop();
-                heights.pop();
+        if (npeak > 0) {
+            if (peak_amax * 8 < heights[npeak - 1]) continue;
+            if (peak_amax > heights[npeak - 1] * 8) npeak--;
+        }
+
+        peaks[npeak] = moment / area;
+        weights[npeak] = area;
+        heights[npeak] = peak_amax;
+        npeak++;
+    }
+
+    if (npeak < 2) return { weight: 0 };
+
+    // 5. Calculate all possible distances between peaks.
+    l.fill(0, 0, n);
+    for (let i = 0; i < npeak - 1; i++) {
+        for (let j = i + 1; j < npeak; j++) {
+            const dist_int = Math.trunc(peaks[j] - peaks[i]);
+            if (dist_int >= 0 && dist_int < n) {
+                l[dist_int]++;
             }
         }
-
-        peaks.push(moment / area);
-        heights.push(peakAmax);
-        if (peakAmax > strongestPeakHeight) {
-            strongestPeakHeight = peakAmax;
-        }
     }
 
-    // At least two peaks are necessary to detect the step.
-    if (peaks.length < 2) return { weight: 0 };
-
-    // 4. Calculate all possible distances between the found peaks.
-    const distCounts = new Int32Array(n).fill(0);
-    for (let i = 0; i < peaks.length - 1; i++) {
-        for (let j = i + 1; j < peaks.length; j++) {
-            const dist = Math.floor(peaks[j] - peaks[i]);
-            if (dist < n) distCounts[dist]++;
-        }
-    }
-
-    // 5. Find group with the maximal number of peaks (the step).
-    let bestDist = 0, bestCount = 0;
-    // Distances under 16 pixels are too short to be real.
+    // 6. Find the group with the maximal number of peaks (best distance).
+    let bestDist = 0;
+    let bestcount = 0;
     for (let i = 16; i < n; i++) {
-        if (distCounts[i] === 0) continue;
+        if (l[i] === 0) continue;
         let sum = 0;
-        // Allow for approximately 3% dispersion (i + i/33 + 1).
-        const end = i + Math.floor(i / 33) + 1;
-        for (let j = i; j <= end && j < n; j++) sum += distCounts[j];
-        if (sum > bestCount) {               // Shorter is better
+        // C: for (j=i; j<=i+i/33+1 && j<n; j++) sum+=l[j];
+        // ** BUG FIX 1 **: Replicate C's integer division (i/33)
+        const j_limit = i + Math.floor(i / 33) + 1;
+        for (let j = i; j <= j_limit && j < n; j++) {
+            sum += l[j];
+        }
+        if (sum > bestcount) {
             bestDist = i;
-            bestCount = sum;
+            bestcount = sum;
         }
     }
 
     if (bestDist === 0) return { weight: 0 };
 
-    // 6. Determine the parameters of the sequence using linear regression.
-    let sn = 0, sx = 0, sy = 0, sxx = 0, sxy = 0, totalHeight = 0;
+    // 7. Determine parameters of the sequence (Linear Regression).
+    let sn = 0.0, sx = 0.0, sy = 0.0, sxx = 0.0, syy = 0.0, sxy = 0.0;
+    let totalHeight = 0.0;
 
-    for (let i = 0; i < peaks.length - 1; i++) {
-        for (let j = i + 1; j < peaks.length; j++) {
+    for (let i = 0; i < npeak - 1; i++) {
+        for (let j = i + 1; j < npeak; j++) {
             const dist = peaks[j] - peaks[i];
-            // Only include pairs whose distance falls within the allowed dispersion of bestDist.
-            if (dist < bestDist || dist >= bestDist + bestDist / 33 + 1) continue;
+
+            // C: if (dist<bestdist || dist>=bestdist+bestdist/33+1) continue;
+            // ** BUG FIX 2 **: Replicate C's integer division (bestdist/33)
+            if (dist < bestDist || dist >= (bestDist + Math.floor(bestDist / 33) + 1)) continue;
 
             let k = 0;
             if (sn !== 0) {
-                // Calculate preliminary x0 and step to find the theoretical index k for peak[i].
                 const divisor = (sx * sx - sn * sxx);
-                if (divisor === 0) continue; // Avoid division by zero
+                if (divisor === 0) continue;
                 const x0 = (sx * sxy - sxx * sy) / divisor;
                 const step = (sx * sy - sn * sxy) / divisor;
 
                 // C line: k=(peak[i]-x0+step/2.0)/step;
-                // Since this is C integer math, we must replicate the implicit floor/truncation
-                // C code is effectively using a rounding scheme for k, so we use Math.round().
-                k = Math.round((peaks[i] - x0) / step);
+                // ** BUG FIX 4 **: Add check for step being zero to prevent division by zero.
+                if (step === 0) continue;
+                // ** BUG FIX 3 **: Replicate C's (int) cast (truncation), not Math.round().
+                k = Math.trunc((peaks[i] - x0 + (step / 2.0)) / step);
             }
 
-            // Accumulate linear regression variables
             sn += 2.0;
             sx += k * 2 + 1;
             sy += peaks[i] + peaks[j];
             sxx += k * k + (k + 1) * (k + 1);
             sxy += peaks[i] * k + peaks[j] * (k + 1);
-            totalHeight += heights[i] + heights[j]; // moment.
+            totalHeight += heights[i] + heights[j];
         }
     }
 
     if (sn === 0) return { weight: 0 };
 
-    // Final linear regression calculation.
     const divisor = (sx * sx - sn * sxx);
-    if (divisor === 0) return { weight: 0 }; // Should not happen with real data, but safe check
+    if (divisor === 0) return { weight: 0 };
 
     const bestPeak = (sx * sxy - sxx * sy) / divisor;
     const bestStep = (sx * sy - sn * sxy) / divisor;

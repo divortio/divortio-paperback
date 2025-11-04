@@ -2,7 +2,8 @@
 
 import { initializeLogging } from './ui/logging.js';
 import { initializeNavigation } from './ui/nav.js';
-import { decode } from '../floppyPaper/lib/main/index.js';
+// ** FIX **: Import from the new, correct file
+import { decode } from '../floppyPaper/lib/main/decode.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     function getElement(id) {
@@ -12,8 +13,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-
-
         const { log, reportError } = initializeLogging();
         initializeNavigation();
 
@@ -27,13 +26,30 @@ document.addEventListener('DOMContentLoaded', () => {
         const decodeProgress = getElement('decode-progress');
         const decodeStatusText = getElement('decode-status-text');
         const downloadLinkContainer = getElement('download-link-container');
+        const bestQualityCheckbox = getElement('best-quality-checkbox');
         const passwordInput = getElement('password-input');
+
+        // --- Progress Update Helper (mirrors encode-app.js) ---
+        let stepCounter = 0;
+        // 1. Read, 2. Raster, 3. Intensity, 4. Grid, 5. Decode, 6. Finalize
+        const totalSteps = 6;
+
+        /**
+         * Updates the progress bar and status text.
+         * @param {string} message - The status message to display.
+         * @param {number} progress - The percentage (0-100).
+         */
+        function updateProgress(message, progress) {
+            // Always update the UI (spinner, progress bar, text)
+            decodeStatusText.textContent = message;
+            decodeProgress.style.width = `${progress}%`;
+            log(`${message} - ${progress}%`); // Log the major step update
+        }
 
         let selectedImages = [];
 
         function handleImageSelect(files) {
             selectedImages = Array.from(files);
-            // Sort files numerically, as the C code does
             selectedImages.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 
             decodeFileList.innerHTML = '<strong>Selected Images (processing order):</strong><ul>' + selectedImages.map(f => `<li class="ml-4">${f.name}</li>`).join('') + '</ul>';
@@ -58,58 +74,98 @@ document.addEventListener('DOMContentLoaded', () => {
             handleImageSelect(e.dataTransfer.files);
         });
 
+        decodeDropZone.addEventListener('click', () => {
+            imageInput.click();
+        });
+
         decodeButton.addEventListener('click', async () => {
             decodeButton.disabled = true;
-            spinner.classList.remove('hidden');
+            spinner.classList.remove('hidden'); // This will now spin
             decodeProgressContainer.classList.remove('hidden');
             decodeProgress.style.width = '0%';
-            decodeProgress.style.backgroundColor = '#3B82F6'; // blue-500
-            decodeStatusText.textContent = 'Starting...';
-            downloadLinkContainer.innerHTML = ''; // Clear previous link
+            decodeProgress.style.backgroundColor = '#3B82F6';
+            downloadLinkContainer.innerHTML = '';
+            stepCounter = 0;
+            updateProgress("Starting...", 0);
 
             try {
-                const password = passwordInput.value;
-                let finalResult = null;
+                // ** FIX **: Pass options object, not separate args
+                const options = {
+                    password: passwordInput.value,
+                    bestquality: bestQualityCheckbox.checked
+                };
 
-                // C: for (int i = 0; i < pb_npages; i++) { ... Decodebitmap (path); ... }
-                // We loop through each selected file, decoding them one by one
-                // until the file processor has a complete file.
-                let i = 0;
+                let finalResult = null;
+                let fileIndex = 0;
+
                 for (const file of selectedImages) {
                     try {
-                        log(`Processing ${file.name}...`);
-
-                        // 1. Read the file into an ArrayBuffer
+                        log(`--- Processing ${file.name} ---`);
                         const buffer = await file.arrayBuffer();
 
-                        // 2. Call the backend decode function
-                        // This now returns { blob, filename } on success or null
-                        const result = await decode(buffer, password);
+                        // ** REFACTOR **: Call the generator and use a switch, just like encode-app.js
+                        for await (const update of decode(buffer, options)) {
+                            if (update.error) {
+                                throw new Error(update.error);
+                            }
 
-                        // 3. Update progress
-                        const percent = Math.round(((i + 1) / selectedImages.length) * 100);
-                        decodeProgress.style.width = `${percent}%`;
-                        decodeStatusText.textContent = `Processing: ${percent}%`;
+                            const status = update.status || "";
+                            const progress = update.progress || 0;
+                            let stepName = "";
 
-                        // 4. Check if the file is complete
-                        if (result && result.blob) {
-                            log(`File restored successfully from ${file.name}!`);
-                            finalResult = result;
-                            break; // File is complete, exit the loop
-                        } else {
-                            log(`Page ${file.name} processed, file not yet complete.`);
+                            // This is the final yielded object from scanner.js
+                            if (status === "Complete") {
+                                if (update.file) { // 'file' is the key from scanner.js
+                                    finalResult = update.file;
+                                    updateProgress(`File restored! (${file.name})`, 100);
+                                }
+                                break;
+                            }
+
+                            // Handle step-by-step progress updates
+                            // This now mirrors the logic in encode-app.js
+                            if (status.startsWith('Reading bitmap')) {
+                                stepCounter = 1;
+                                stepName = "Reading Bitmap";
+                            } else if (status.startsWith('Searching for raster')) {
+                                stepCounter = 2;
+                                stepName = "Searching for Raster";
+                            } else if (status.startsWith('Analyzing intensity')) {
+                                stepCounter = 3;
+                                stepName = "Analyzing Intensity";
+                            } else if (status.startsWith('Searching for grid')) {
+                                stepCounter = 4;
+                                stepName = "Finding Grid Lines";
+                            } else if (status.startsWith('Decoding...')) { // Catches "Decoding..."
+                                stepCounter = 5;
+                                stepName = "Decoding";
+                            } else if (status.startsWith('Finalizing')) {
+                                stepCounter = 6;
+                                stepName = "Finalizing File";
+                            }
+                            // We explicitly IGNORE "Decoding blocks..." to prevent granular logging
+
+                            if (stepName) {
+                                const message = `(Step ${stepCounter}/${totalSteps}) ${stepName}...`;
+                                updateProgress(`${message} (${file.name})`, progress);
+                            }
                         }
-                        i++;
+
+                        if (finalResult) {
+                            break; // File is restored, break the outer file loop
+                        }
+
+                        log(`Page ${file.name} processed, file not yet complete.`);
+                        fileIndex++;
+
                     } catch (e) {
                         reportError(`An error occurred processing ${file.name}`, e);
                     }
-
                 }
 
                 // 5. Handle the final result (after the loop)
                 if (finalResult && finalResult.blob) {
                     decodeStatusText.textContent = `File restored: ${finalResult.filename}`;
-                    log(`File restored successfully: ${finalResult.filename}`);
 
                     const url = URL.createObjectURL(finalResult.blob);
                     const a = document.createElement('a');

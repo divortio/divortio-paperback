@@ -2,7 +2,7 @@
 
 import { initializeLogging } from './ui/logging.js';
 import { initializeNavigation } from './ui/nav.js';
-import { encode } from '../floppyPaper/lib/main/index.js';
+import { encode } from '../floppyPaper/lib/main/encode.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // This helper function ensures an element exists before we use it.

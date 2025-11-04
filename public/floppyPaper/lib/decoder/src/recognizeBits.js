@@ -27,9 +27,10 @@ export function recognizeBits(pdata, grid) {
     for (let r = 0; r < 8; r++) { // Try all 8 orientations
         if (pdata.orientation >= 0 && r !== pdata.orientation) continue;
 
-        for (let k = 0; k < 9; k++) { // Try all 9 correction factors
+        for (let k = 0; k < 9; k++) {
             const q = (k + lastgood) % 9;
-            let factor = 1000, lcorr = 0;
+            let factor, lcorr;
+
             switch (q) {
                 case 0: factor = 1000; lcorr = 0; break;
                 case 1: factor = 32; lcorr = 0; break;
@@ -40,22 +41,32 @@ export function recognizeBits(pdata, grid) {
                 case 6: factor = 1000; lcorr = (cmax - cmin) / 16; break;
                 case 7: factor = 32; lcorr = (cmax - cmin) / 16; break;
                 case 8: factor = 16; lcorr = (cmax - cmin) / 16; break;
+                default: factor = 1000; lcorr = 0; lastgood = 0; break;
             }
 
+            // Correct grid for overlapping dots and calculate limit
             let limit = 0;
             for (let j = 0; j < NDOT; j++) {
                 for (let i = 0; i < NDOT; i++) {
+                    // C: c=grid[i][j]*factor;
                     let c = grid[j * NDOT + i] * factor;
-                    if (i > 0) c -= grid[j * NDOT + (i - 1)]; else c -= cmax;
-                    if (i < 31) c -= grid[j * NDOT + (i + 1)]; else c -= cmax;
-                    if (j > 0) c -= grid[(j - 1) * NDOT + i]; else c -= cmax;
-                    if (j < 31) c -= grid[(j + 1) * NDOT + i]; else c -= cmax;
+                    // C: if (i>0) c-=grid[j][i-1]; else c-=cmax;
+                    c -= (i > 0) ? grid[j * NDOT + (i - 1)] : cmax;
+                    // C: if (i<31) c-=grid[j][i+1]; else c-=cmax;
+                    c -= (i < 31) ? grid[j * NDOT + (i + 1)] : cmax;
+                    // C: if (j>0) c-=grid[j-1][i]; else c-=cmax;
+                    c -= (j > 0) ? grid[(j - 1) * NDOT + i] : cmax;
+                    // C: if (j<31) c-=grid[j+1][i]; else c-=cmax;
+                    c -= (j < 31) ? grid[(j + 1) * NDOT + i] : cmax;
+
                     grid1[j][i] = c;
                     limit += c;
                 }
             }
-            limit = limit / (NDOT * NDOT) + lcorr * factor;
+            limit = (limit / 1024) + lcorr * factor;
 
+            // Extract data according to the selected orientation.
+            result.fill(0);
             for (let j = 0; j < NDOT; j++) {
                 let rowBits = 0;
                 for (let i = 0; i < NDOT; i++) {
@@ -74,6 +85,7 @@ export function recognizeBits(pdata, grid) {
                         rowBits |= (1 << i);
                     }
                 }
+                // XOR with grid that corrects mean brightness.
                 const pattern = (j & 1) ? 0xAAAAAAAA : 0x55555555;
                 resultView.setUint32(j * 4, rowBits ^ pattern, true);
             }
@@ -82,10 +94,10 @@ export function recognizeBits(pdata, grid) {
             const answer = decode8(result, null, 0, 127);
 
             if (answer >= 0 && answer <= 16) {
+                // Verify data for correctness by calculating CRC.
                 const dataSlice = result.subarray(0, NDATA + 4);
-                // --- START OF FIX: Remove incorrect XOR operation ---
-                const calculatedCrc = crc16(dataSlice);
-                // --- END OF FIX ---
+                // C: crc=(ushort)(Crc16((uchar *)result,NDATA+4)^0x55AA);
+                const calculatedCrc = crc16(dataSlice) ^ 0x55AA;
                 const storedCrc = new DataView(result.buffer).getUint16(NDATA + 4, true);
 
                 if (calculatedCrc === storedCrc) {
@@ -106,5 +118,7 @@ export function recognizeBits(pdata, grid) {
     if (pdata.mode & M_BEST) {
         return { answer: bestanswer, result: bestresult };
     }
-    return { answer: bestanswer, result };
+
+    // No good block found in any orientation
+    return { answer: bestanswer, result: bestresult };
 }

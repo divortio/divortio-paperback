@@ -58,11 +58,9 @@ export function getGridIntensity(pdata) {
         let index = (searchy0 + j) * sizex + searchx0;
         for (let i = 0; i < dx - 1; i++, index++) {
             const currentPixel = data[index];
-
             distrc[currentPixel]++;
             cmean += currentPixel;
             n++;
-
             // Sharpness estimate: absolute difference with right and bottom neighbors
             distrd[Math.abs(data[index + 1] - currentPixel)]++;        // pd[1]-pd[0]
             distrd[Math.abs(data[index + sizex] - currentPixel)]++;    // pd[sizex]-pd[0]

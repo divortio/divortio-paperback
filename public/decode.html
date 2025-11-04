@@ -18,42 +18,39 @@
             <div class="layout-content-container flex flex-col max-w-[960px] flex-1">
                 <div class="pb-3">
                     <div class="flex border-b border-[#dae0e7] px-4 gap-8">
-                        <a id="tab-encode" class="flex flex-col items-center justify-center cursor-pointer"><p class="font-medium text-sm text-[#5f6774] py-3 border-b-2 border-transparent">Encode</p></a>
-                        <a id="tab-decode" class="flex flex-col items-center justify-center cursor-pointer"><p class="font-medium text-sm text-[#101418] py-3 border-b-2 border-[#101418]">Decode</p></a>
+                        <a id="tab-encode" class="flex flex-col items-center justify-center cursor-pointer"><p class="py-3 font-medium text-[#515861]">Encode</p></a>
+                        <a id="tab-decode" class="flex flex-col items-center justify-center cursor-pointer border-b-2 border-[#101418]"><p class="py-3 font-medium text-[#101418]">Decode</p></a>
                     </div>
                 </div>
-                <section class="rounded border border-solid border-[#dae0e7] bg-white">
-                    <div class="p-4">
-                        <h3 class="text-[#101418] text-lg font-bold leading-tight tracking-[-0.015em] pb-2">Decode</h3>
-                        <p class="text-sm text-[#5f6774] pb-1">Upload the .bmp or .png images of your paper backup. If you have multiple pages, select them all at once.</p>
-
-                        <div class="mt-4">
-                            <label for="image-input" class="block text-sm font-medium text-[#101418] mb-2">Select Images</label>
-                            <input type="file" id="image-input" multiple accept="image/bmp,image/png,image/jpeg" class="block w-full text-sm text-[#101418] file:mr-4 file:py-2 file:px-4 file:rounded-md file:border file:border-solid file:border-[#dae0e7] file:text-sm file:font-medium file:bg-white file:text-[#101418] hover:file:bg-gray-50 cursor-pointer"/>
-                        </div>
-
-                        <div id="decode-drop-zone" class="mt-4 border-2 border-dashed border-[#dae0e7] rounded-lg p-10 text-center text-[#5f6774] cursor-pointer hover:border-[#101418] transition-colors duration-200">
-                            Drag & Drop image files here
-                        </div>
-
-                        <div id="decode-file-list" class="mt-4 rounded border border-solid border-[#dae0e7] bg-white" style="display: none;"></div>
+                <section class="flex flex-col rounded-lg border border-solid border-[#f0f2f5] bg-white shadow-sm">
+                    <h3 class="text-[#101418] text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">Decode</h3>
+                    <div id="decode-drop-zone" class="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#dae0e7] bg-white m-4 p-6 cursor-pointer hover:border-blue-500">
+                        <input type="file" id="image-input" class="hidden" multiple accept="image/bmp,image/png,image/jpeg">
+                        <p class="text-sm text-[#515861]">Drag & drop BMP, PNG, or JPG images here, or click to select files</p>
+                        <p class="text-xs text-gray-500 mt-1">Files will be processed in numerical order</p>
                     </div>
-
+                    <div id="decode-file-list" class="px-4 pb-2 text-sm text-gray-700 hidden"></div>
                     <div class="p-4">
-                        <label for="password-input" class="block text-sm font-medium text-[#101418] mb-2">Password (if encrypted)</label>
-                        <input type="text" id="password-input" class="block w-full text-sm text-[#101418] rounded border border-solid border-[#dae0e7] bg-white p-2 focus:outline-none focus:ring-2 focus:ring-[#101418]" placeholder="Enter password (optional)">
+                        <label for="password-input" class="block text-sm font-medium text-gray-700 mb-1">Password (optional)</label>
+                        <input type="password" id="password-input" class="w-full rounded border border-solid border-[#dae0e7] p-2" placeholder="Enter password if file is encrypted">
                     </div>
-
-                    <button id="decode-button" class="flex w-full cursor-pointer items-center justify-center rounded bg-[#101418] px-4 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-black/80 disabled:cursor-not-allowed disabled:opacity-50" disabled>
-                        <svg id="spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" style="display: none;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <span>Decode Images</span>
-                    </button>
-
-                    <div id="decode-progress-container" class="p-4" style="display: none;">
-                        <p id="decode-status-text" class="text-base font-medium">Decoding Progress</p>
+                    <div class="p-4 pt-0">
+                        <label for="best-quality-checkbox" class="flex items-center space-x-2 cursor-pointer">
+                            <input type="checkbox" id="best-quality-checkbox" class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500">
+                            <span class="text-sm font-medium text-gray-700">Best Quality (Slower)</span>
+                        </label>
+                    </div>
+                    <div class="p-4">
+                        <button id="decode-button" class="w-full bg-blue-500 hover:bg-blue-600 text-white rounded p-2 font-bold flex items-center justify-center gap-2" disabled>
+                            <svg id="spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span>Decode Images</span>
+                        </button>
+                    </div>
+                    <div id="decode-progress-container" class="p-4 hidden">
+                        <p id="decode-status-text" class="text-sm font-medium text-gray-700 mb-1">Decoding Progress</p>
                         <div class="w-full bg-[#dae0e7] rounded-full h-2.5"><div id="decode-progress" class="h-2.5 rounded-full bg-[#101418]" style="width: 0%;"></div></div>
                     </div>
                     <h3 class="text-[#101418] text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">Output</h3>
@@ -72,11 +69,10 @@
         <h3 class="text-xl font-bold text-red-600 mb-4">An Error Occurred</h3>
         <p id="error-modal-message" class="text-gray-700 mb-6"></p>
         <div class="flex justify-end gap-4">
-            <button id="error-modal-dismiss" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">Close</button>
-            <button id="error-modal-refresh" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Refresh Page</button>
+            <button id="error-modal-dismiss" class="text-gray-600 font-medium py-2 px-4 rounded hover:bg-gray-100">Dismiss</button>
         </div>
     </div>
 </div>
-<script type="module" src="/js/decode-app.js"></script>
+<script src="/js/decode-app.js" type="module"></script>
 </body>
 </html>

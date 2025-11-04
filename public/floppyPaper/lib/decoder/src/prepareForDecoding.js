@@ -11,9 +11,6 @@ import {  createSuperblock } from '../../primitives/createSuperBlock.js';
 import {  createBlock } from '../../primitives/createBlock.js';
 import { Reporterror } from '../../logging/log.js';
 
-/**
- * @typedef {import('./getAngle.js').PData} PData
- */
 
 /**
  * Prepares the pdata object for decoding by calculating final grid
@@ -22,7 +19,7 @@ import { Reporterror } from '../../logging/log.js';
  * Corresponds to `Preparefordecoding` in `Decoder.c`.
  *
  * @param {PData} pdata - The processing data object, modified in place.
- * @returns {void}
+ * @returns {PData} The modified pdata object.
  */
 export function prepareForDecoding(pdata) {
     // C: int sizex,sizey,dx,dy;
@@ -68,11 +65,18 @@ export function prepareForDecoding(pdata) {
     // C: // in X direction.
     // C: maxxshift=fabs(pdata->xangle*sizey);
     const maxxshift = Math.abs(pdata.xangle * sizey);
-    // C: if (pdata->xangle<0.0) shift=0.0; else shift=maxxshift;
-    const shiftx = (pdata.xangle < 0.0) ? 0.0 : maxxshift;
+    let shift;
+    // C: if (pdata->xangle<0.0)
+    if (pdata.xangle < 0.0)
+        // C: shift=0.0;
+        shift = 0.0;
+    // C: else
+    else
+        // C: shift=maxxshift;
+        shift = maxxshift;
     // C: while (pdata->xpeak-xstep>-shift-xstep*border)
-    // C:   pdata->xpeak-=xstep;
-    while (pdata.xpeak - xstep > -shiftx - xstep * border) {
+    while (pdata.xpeak - xstep > -shift - (xstep * border)) {
+        // C: pdata->xpeak-=xstep;
         pdata.xpeak -= xstep;
     }
     // C: pdata->nposx=(int)((sizex+maxxshift)/xstep);
@@ -81,26 +85,36 @@ export function prepareForDecoding(pdata) {
     // C: // The same in Y direction.
     // C: maxyshift=fabs(pdata->yangle*sizex);
     const maxyshift = Math.abs(pdata.yangle * sizex);
-    // C: if (pdata->yangle<0.0) shift=0.0; else shift=maxyshift;
-    const shifty = (pdata.yangle < 0.0) ? 0.0 : maxyshift;
+    // C: if (pdata->yangle<0.0)
+    if (pdata.yangle < 0.0)
+        // C: shift=0.0;
+        shift = 0.0;
+    // C: else
+    else
+        // C: shift=maxyshift;
+        shift = maxyshift;
     // C: while (pdata->ypeak-ystep>-shift-ystep*border)
-    // C:   pdata->ypeak-=ystep;
-    while (pdata.ypeak - ystep > -shifty - ystep * border) {
+    while (pdata.ypeak - ystep > -shift - (ystep * border)) {
+        // C: pdata->ypeak-=ystep;
         pdata.ypeak -= ystep;
     }
     // C: pdata->nposy=(int)((sizey+maxyshift)/ystep);
     pdata.nposy = Math.floor((sizey + maxyshift) / ystep);
 
-    // C: // Start new quality map. Note that this call doesn't force map to be
-    // C: // displayed.
-    // C: //Initqualitymap(pdata->nposx,pdata->nposy);
-
     // C: // Allocate block buffers.
     // C: dx=xstep*(2.0*border+1.0)+1.0;
-    const dx = Math.floor(xstep * (2.0 * border + 1.0) + 1.0);
+    // ** BUG FIX **: C truncates this to an int. We must use Math.floor().
+    const dx = Math.floor(xstep * (2.0 * pdata.blockborder + 1.0) + 1.0);
     // C: dy=ystep*(2.0*border+1.0)+1.0;
-    const dy = Math.floor(ystep * (2.0 * border + 1.0) + 1.0);
+    // ** BUG FIX **: C truncates this to an int. We must use Math.floor().
+    const dy = Math.floor(ystep * (2.0 * pdata.blockborder + 1.0) + 1.0);
 
+    // C: pdata->blocklist=(t_block *) malloc(pdata->nposx*pdata->nposy*sizeof(t_block));
+    // We create an array of t_block objects (which are created by createBlock)
+    const blocklistSize = pdata.nposx * pdata.nposy;
+
+    // C: // Check that we have enough memory.
+    // C: if (pdata->buf1==NULL || pdata->buf2==NULL || ... )
     try {
         // C: pdata->buf1=(uchar *)malloc(dx*dy);
         pdata.buf1 = new Uint8Array(dx * dy);
@@ -110,24 +124,18 @@ export function prepareForDecoding(pdata) {
         pdata.bufx = new Int32Array(dx);
         // C: pdata->bufy=(int *)malloc(dy*sizeof(int));
         pdata.bufy = new Int32Array(dy);
-
         // C: pdata->blocklist=(t_block *)
-        // C:   malloc(pdata->nposx*pdata->nposy*sizeof(t_block));
-        // We create an array of t_block objects (as defined in paperbak/crc16.js)
-        const blocklistLength = pdata.nposx * pdata.nposy;
-        pdata.blocklist = Array.from({ length: blocklistLength }, () => createBlock());
+        pdata.blocklist = new Array(blocklistSize).fill(null).map(() => createBlock());
 
-        // C: // Check that we have enough memory.
-        // C: if (pdata->buf1==NULL || pdata->buf2==NULL || ... )
-    } catch (error) {
-        // C: if (pdata->buf1!=NULL) free(pdata->buf1); (etc...)
-        // JS garbage collector handles freeing, we just report the error.
+    } catch (e) {
+        // This catch block is hit when dx or dy is Infinity,
+        // which is caused by bugs in findPeaks.js or getAngle.js.
         // C: Reporterror("Low memory");
         Reporterror("Low memory");
         // C: pdata->step=0;
         pdata.step = 0;
         // C: return; };
-        return;
+        return pdata; // Return pdata as requested, even on failure.
     }
 
     // C: // Determine maximal size of the dot on the bitmap.
@@ -151,7 +159,6 @@ export function prepareForDecoding(pdata) {
     // C: // Prepare superblock.
     // C: memset(&pdata->superblock,0,sizeof(t_superblock));
     // We re-initialize the superblock object to zero it out,
-    // assuming createSuperblock() exists in paperbak/crc16.js
     pdata.superblock = createSuperblock();
 
     // C: // Initialize remaining items.
@@ -160,7 +167,7 @@ export function prepareForDecoding(pdata) {
     // C: pdata->bufdy=dy;
     pdata.bufdy = dy;
     // C: pdata->orientation=-1;
-    pdata.orientation = -1; // As yet, unknown page orientation
+    pdata.orientation = -1;
     // C: pdata->ngood=0;
     pdata.ngood = 0;
     // C: pdata->nbad=0;
@@ -170,12 +177,13 @@ export function prepareForDecoding(pdata) {
     // C: pdata->nrestored=0;
     pdata.nrestored = 0;
     // C: pdata->posx=pdata->posy=0;
-    pdata.posx = 0; // First block to scan
+    pdata.posx = 0;
     pdata.posy = 0;
 
     // C: // Step finished.
     // C: pdata->step++;
     pdata.step++;
 
-    // C: };
+    // Return pdata as requested
+    return pdata;
 }

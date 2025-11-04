@@ -1,3 +1,5 @@
+import { NDATA } from './constants.js';
+
 /**
  * Creates a new, zero-filled t_block object (for the blocklist).
  * C: t_block
