@@ -4,7 +4,6 @@ import { FILENAME_SIZE, NDATA } from './constants.js';
 /**
  * Creates a new, zero-filled t_fproc object (file processor state).
  * C: t_fproc
- * @returns {import('./index.js').t_fproc}
  */
 export function createFproc() {
     return {

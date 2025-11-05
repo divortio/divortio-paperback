@@ -15,9 +15,10 @@ import { printFile } from '../printer/print.js';
  * This function is a generator that yields status updates.
  *
  * @param {File} file - The file object to encode.
- * @param {object} options - The encoding options.
+ * @param  {{dpi: number,dotpercent: number,redundancy: number,compression: (number),encryption: (number),password: string,printheader: (number),printborder: (number)}} options - The encoding options.
  * @yields {object} A status object { status, percent, blob, filename, error }.
  */
+
 export async function* encode(file, options) {
     // C: Printfile(pb_infile,pb_outfile);
     // C: pb_printdata.step=1;

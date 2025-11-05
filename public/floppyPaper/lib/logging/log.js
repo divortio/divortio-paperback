@@ -6,7 +6,7 @@
  */
 export function Reporterror(input) {
     console.error(input);
-    alert(`Error: ${input}`);
+    // alert(`Error: ${input}`);
 }
 
 /**

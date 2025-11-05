@@ -1,12 +1,11 @@
 /**
  * @fileoverview
  * Port of the `ProcessDIB` function from `Scanner.c`.
- * This function converts a parsed BMP (Device Independent Bitmap)
- * from 8-bit (paletted) or 24-bit (RGB) into an 8-bit grayscale
- * pixel array, which is required by the decoding engine.
  *
- * *MODIFIED*: This file has been updated to accept the 32-bit RGBA
- * output from `bmpDecode.js` and convert it to 8-bit grayscale.
+ * This function's role is to be an ADAPTER.
+ * It takes the 32-bit RGBA (Top-Down) pixel buffer from `bmpDecode.js`
+ * and converts it into the 8-bit Grayscale (Bottom-Up) buffer that the
+ * C-ported CV pipeline (getXAngle, decodeBlock, etc.) expects.
  */
 
 // startBitmapDecoding is the first step in the decoder pipeline,
@@ -15,7 +14,7 @@ import { startBitmapDecoding } from '../decoder/src/startBitmapDecoding.js';
 import { Reporterror } from '../logging/log.js';
 
 /**
- * @typedef {import('../decoder/src/getAngle.js').PData} PData
+ * @typedef {import('./getGridIntensity.js').PData} PData
  * @typedef {import('../bmpImage/bmpDecode.js').BitmapImage} BitmapImage
  */
 
@@ -34,12 +33,15 @@ const BI_RGB = 0;
  * @returns {number} 0 on success, -1 on error.
  */
 export function processDIB(pdata, image, pb_bestquality) {
+    // C: sizex=pdib->bmiHeader.biWidth;
+    // C: sizey=pdib->bmiHeader.biHeight;
     const sizex = image.width;
     const sizey = image.height;
     const totalPixels = sizex * sizey;
 
     // C: data=(uchar *)malloc(sizex*sizey);
     // C: pdata=data;
+    // This allocates the destination 8-bit grayscale buffer.
     const grayscaleData = new Uint8Array(totalPixels);
 
     // The bmpDecode.js library provides 32-bit RGBA data.
@@ -55,20 +57,24 @@ export function processDIB(pdata, image, pb_bestquality) {
     // C: *pdata++=(uchar)((pbits[0]+pbits[1]+pbits[2])/3);
     for (let y = 0; y < sizey; y++) {
         for (let x = 0; x < sizex; x++) {
-            const src_idx = (y * sizex + x) * 4; // Source index (top-down)
-            const dest_idx = ((sizey - 1 - y) * sizex + x); // Dest. index (bottom-up)
+            // Source index (reads from top-down, 32-bit RGBA buffer)
+            const src_idx = (y * sizex + x) * 4;
+            // Dest. index (writes to bottom-up, 8-bit grayscale buffer)
+            const dest_idx = ((sizey - 1 - y) * sizex + x);
 
             // Use the same simple average as the original C code
+            // (C code averages B,G,R. We average R,G,B. Sum is identical.)
             grayscaleData[dest_idx] = (image.data[src_idx] + image.data[src_idx + 1] + image.data[src_idx + 2]) / 3;
         }
     }
 
     // C: // Decode bitmap. This is what we are for here.
-    // C: Startbitmapdecoding(pdata,data,sizex,sizey);
-    // This function (from `startBitmapDecoding.js`) kicks off the
-    // actual decoding pipeline (find grid, find angles, etc.)
+    // C: Startbitmapdecoding(&pb_procdata,data,sizex,sizey);
+    //
+    // Pass the newly created 8-bit, bottom-up, grayscale buffer
+    // to the CV pipeline.
     startBitmapDecoding(pdata, grayscaleData, sizex, sizey, pb_bestquality);
 
     // C: return 0;
-    return 0;
+    return 0; // Success
 }

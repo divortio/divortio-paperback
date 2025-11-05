@@ -23,44 +23,65 @@ export function drawBlock(index, blockBuffer, bits, width, height, border, nx, d
     const blockView = new DataView(blockBuffer);
     const blockBytes = new Uint8Array(blockBuffer);
 
-    // 1. Calculate CRC and add it to the block.
-    // The CRC is calculated over the first 94 bytes (address + data).
+    // --- START OF FIX ---
+    //
+    // C: 1. Add CRC.
+    // block->crc=(ushort)(Crc16((uchar *)block,NDATA+sizeof(uint32_t))^0x55AA);
+    // We calculate CRC on addr (4 bytes) and data (90 bytes)
     const crc = crc16(blockBytes.subarray(0, NDATA + 4)) ^ 0x55AA;
-    blockView.setUint16(NDATA + 4, crc, true); // true for little-endian
+    blockView.setUint16(NDATA + 4, crc, true); // Offset 94 (4 + 90)
 
-    // 2. Add Reed-Solomon error correction code.
+    // C: 2. Add error correction code.
+    // Encode8((uchar *)block,block->ecc,127);
     const ecc = new Uint8Array(32);
     encode8(blockBytes, ecc, 127); // pad is 127 for the full block
-    blockBytes.set(ecc, NDATA + 6);
+    blockBytes.set(ecc, NDATA + 6); // Offset 96 (4 + 90 + 2)
+    //
+    // --- END OF FIX ---
+
 
     // 3. Calculate the top-left pixel coordinate of the block.
+    // C: x=(index%nx)*(NDOT+3)*dx+2*dx+border;
+    // C: y=(index/nx)*(NDOT+3)*dy+2*dy+border;
     let x_start = (index % nx) * (NDOT + 3) * dx + 2 * dx + border;
     let y_start = Math.floor(index / nx) * (NDOT + 3) * dy + 2 * dy + border;
-    let baseOffset = (height - y_start - 1) * width + x_start;
+
+    // C: bits+=(height-y-1)*width+x;
+    // (This C pointer logic is correctly re-implemented inside the loop)
 
     // 4. Draw the 32x32 grid, row by row.
+    // C: for (j=0; j<32; j++) {
     for (let j = 0; j < 32; j++) {
+        // C: t=((uint32_t *)block)[j];
+        // Now we read the *fully populated* buffer
         let t = blockView.getUint32(j * 4, true); // Read a 32-bit row
 
-        // XOR with a pattern to balance black/white distribution.
+        // C: t^=(j & 1?0xAAAAAAAA:0x55555555);
         t ^= (j & 1) ? 0xAAAAAAAA : 0x55555555;
 
-        let x_offset = 0;
+        // C: for (i=0; i<32; i++) {
         for (let i = 0; i < 32; i++) {
+            // C: if (t & 1) {
             if (t & 1) { // If the LSB is 1, draw a dot.
                 // Draw a px-by-py rectangle for the dot.
+                // C: for (m=0; m<py; m++) {
                 for (let m = 0; m < py; m++) {
+                    // C: for (n=0; n<px; n++) {
                     for (let n = 0; n < px; n++) {
-                        const pixelIndex = baseOffset + (x_offset + n) - (m * width);
-                        if(pixelIndex >= 0 && pixelIndex < bits.length) {
-                            bits[pixelIndex] = black;
-                        }
+                        // C: x=...; y=...;
+                        const y = y_start + j * dy + m;
+                        const x = x_start + i * dx + n;
+
+                        // C: bits[x-m*width+n]=(uchar)black;
+                        // (The C code's pointer logic resolves to this exact bottom-up calculation)
+                        bits[(height - y - 1) * width + x] = black;
                     }
                 }
             }
-            t >>>= 1; // Unsigned right shift to process the next bit.
-            x_offset += dx;
+            // C: t>>=1;
+            t >>= 1; // Move to the next bit
         }
-        baseOffset -= dy * width; // Move up to the next row in the bitmap.
+        // C: bits-=dy*width;
+        // (This is handled by our absolute 'y' calculation)
     }
 }

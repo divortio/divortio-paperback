@@ -83,6 +83,17 @@ document.addEventListener('DOMContentLoaded', () => {
         encodeButton.addEventListener('click', async () => {
             if (!selectedFile) return;
 
+            /**
+             *
+             * @type {{dpi: number,
+             * dotpercent: number,
+             * redundancy: number,
+             * compression: (number),
+             * encryption: (number),
+             * password: string,
+             * printheader: (number),
+             * printborder: (number)}}
+             */
             const options = {
                 dpi: parseInt(dpiSlider.value),
                 dotpercent: parseInt(dotsizeSlider.value),

@@ -1,7 +1,7 @@
 // public/floppyPaper/lib/scanner/scanner.js
 
 import { Message, Reporterror } from '../logging/log.js';
-import { createPData } from '../primitives/createPData.js';
+import { createProcData } from '../primitives/createProcData.js';
 import { freeProcData } from '../decoder/src/freeProcData.js';
 
 // --- Import all decoder steps ---
@@ -32,8 +32,10 @@ class Scanner {
      */
     constructor(arrayBuffer, options) {
         // The 'pdata' object holds the entire state for this job
-        this.pdata = createPData();
-        this.pdata.step = 1; // Start at step 1
+        const pData = createProcData()
+        this.print = {...pData, ...options};
+        this.print.step = 1; // Start at step 1
+        console.log(this.print)
 
         this.arrayBuffer = arrayBuffer;
         this.options = options;
@@ -49,9 +51,9 @@ class Scanner {
      * Mirrors Stopprinting().
      */
     stop() {
-        if (this.pdata) {
-            freeProcData(this.pdata);
-            this.pdata.step = 0;
+        if (this.print) {
+            freeProcData(this.print);
+            this.print.step = 0;
         }
         Message("", 0);
     }
@@ -61,70 +63,70 @@ class Scanner {
      * Mirrors Printer.run().
      */
     async* run() {
-        while (this.pdata.step > 0) {
+        while (this.print.step > 0) {
             try {
                 // This switch statement is the logic from nextDataProcessingStep.js
-                switch (this.pdata.step) {
+                switch (this.print.step) {
                     case 1: // Setup: Parse BMP and start the pipeline
                         yield { status: "Reading bitmap...", progress: 1 };
 
                         // This logic was originally in main/index.js
-                        const pb_bestquality = this.options.bestquality || false;
-                        decodeBitmap(this.pdata, this.arrayBuffer, pb_bestquality);
+                        const pb_bestquality = this.print.bestquality || false;
+                        decodeBitmap(this.print, this.arrayBuffer, pb_bestquality);
 
                         // decodeBitmap calls startBitmapDecoding, which sets pdata.step = 1
                         // and the imported step functions will increment it from here.
                         // Let's just set it to 2 manually.
-                        this.pdata.step = 2;
+                        this.print.step = 2;
                         await yieldToEventLoop();
                         break;
 
                     case 2: // Determine grid size
                         yield { status: "Searching for raster...", progress: 5 };
-                        getGridPosition(this.pdata);
+                        getGridPosition(this.print);
                         await yieldToEventLoop();
                         break;
 
                     case 3: // Determine min and max intensity
                         yield { status: "Analyzing intensity...", progress: 10 };
-                        getGridIntensity(this.pdata);
+                        getGridIntensity(this.print);
                         await yieldToEventLoop();
                         break;
 
                     case 4: // Determine step and angle in X
                         yield { status: "Searching for grid lines...", progress: 15 };
-                        getXAngle(this.pdata);
+                        getXAngle(this.print);
                         await yieldToEventLoop();
                         break;
 
                     case 5: // Determine step and angle in Y
                         yield { status: "Searching for grid lines...", progress: 18 };
-                        getYAngle(this.pdata);
+                        getYAngle(this.print);
                         await yieldToEventLoop();
                         break;
 
                     case 6: // Prepare for data decoding
                         yield { status: "Decoding...", progress: 20 };
-                        prepareForDecoding(this.pdata);
+                        prepareForDecoding(this.print);
                         await yieldToEventLoop();
                         break;
 
                     case 7: // Decode next block of data (fast loop)
                         // This step yields its own progress
-                        if (this.pdata.nposx > 0 && this.pdata.nposy > 0) {
+                        if (this.print.nposx > 0 && this.print.nposy > 0) {
                             const percent = 20 + Math.floor(
-                                ((this.pdata.posy * this.pdata.nposx + this.pdata.posx) * 80) /
-                                (this.pdata.nposx * this.pdata.nposy)
+                                ((this.print.posy * this.print.nposx + this.print.posx) * 80) /
+                                (this.print.nposx * this.print.nposy)
                             );
                             yield { status: "Decoding blocks...", progress: percent };
                         }
-                        decodeNextBlock(this.pdata);
+                        decodeNextBlock(this.print);
                         // No yieldToEventLoop here, this step must be fast
                         break;
 
                     case 8: // Finish data decoding
                         yield { status: "Finalizing file...", progress: 99 };
-                        const fileResult = await finishDecoding(this.pdata);
+                        const fileResult = await finishDecoding(this.print);
 
                         // Store the result to be yielded in the final "Complete" message
                         this.fileResult = fileResult;
@@ -132,7 +134,7 @@ class Scanner {
                         break;
 
                     default:
-                        throw new Error(`Unknown decoder step: ${this.pdata.step}`);
+                        throw new Error(`Unknown decoder step: ${this.print.step}`);
                 }
             } catch (err) {
                 this.stop();

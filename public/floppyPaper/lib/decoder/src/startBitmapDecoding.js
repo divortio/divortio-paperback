@@ -33,7 +33,7 @@ export function startBitmapDecoding(pdata, data, sizex, sizey, pb_bestquality) {
     freeProcData(pdata);
 
     // C: memset(pdata,0,sizeof(t_procdata));
-    // In JS, we must reset the fields manually. `createPData` should
+    // In JS, we must reset the fields manually. `createProcData` should
     // be used by the caller, but here we explicitly clear/reset.
 
     // C: pdata->data=data;

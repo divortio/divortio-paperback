@@ -1,14 +1,22 @@
 /**
+ * @file bmpDecode.js
  * @author shaozilee
  *
- * BMP format decoder, ESM conversion.
- * Modified to use browser-native APIs (Uint8Array, DataView) instead of Buffer.
- * Supports 1, 4, 8, 15, 16, 24, and 32-bit BMP.
+ * MODIFIED FOR DIVORTIO-PAPERBACK
+ * This file has been heavily refactored to align with the original C 'Scanner.c' source.
+ * It NO LONGER outputs 32-bit RGBA.
+ *
+ * It now:
+ * 1. Supports only uncompressed (BI_RGB) 8-bit and 24-bit BMPs.
+ * 2. Performs grayscale conversion on the fly.
+ * 3. Outputs a single 8-bit, 1-channel, BOTTOM-UP grayscale pixel buffer.
+ *
+ * This makes the 'processDIB.js' file redundant.
  */
 
 class BmpDecoder {
     /**
-     * @param {ArrayBuffer} arrayBuffer - The BMP file data.
+     * @param {ArrayBuffer} arrayBuffer
      */
     constructor(arrayBuffer) {
         this.arrayBuffer = arrayBuffer;
@@ -16,30 +24,35 @@ class BmpDecoder {
         this.uint8Array = new Uint8Array(arrayBuffer);
         this.pos = 0;
         this.bottom_up = true;
+        this.palette = [];
 
         const flag = String.fromCharCode(this.dataView.getUint8(0), this.dataView.getUint8(1));
         if (flag !== "BM") {
             throw new Error("Invalid BMP File: Missing 'BM' signature.");
         }
-        this.pos += 2;
+        this.pos += 2; // Skip 'BM'
 
         this.parseHeader();
-        this.parsePalette();
-        this.parseRGBA();
+        if (this.bitPP === 8) {
+            this.parsePalette();
+        }
+        this.parseGrayscale(); // This replaces parseRGBA()
     }
 
     // Helper methods to read from DataView
     _readUInt32LE() { const v = this.dataView.getUint32(this.pos, true); this.pos += 4; return v; }
     _readInt32LE() { const v = this.dataView.getInt32(this.pos, true); this.pos += 4; return v; }
     _readUInt16LE() { const v = this.dataView.getUint16(this.pos, true); this.pos += 2; return v; }
-    _readUInt8() { return this.dataView.getUint8(this.pos++); }
+    _readUInt8() { const v = this.dataView.getUint8(this.pos); this.pos += 1; return v; }
 
     parseHeader() {
         this.fileSize = this._readUInt32LE();
         this.reserved = this._readUInt32LE();
         this.offset = this._readUInt32LE();
+
+        // DIB Header
         this.headerSize = this._readUInt32LE();
-        this.width = this._readUInt32LE();
+        this.width = this._readInt32LE();
         this.height = this._readInt32LE();
         this.planes = this._readUInt16LE();
         this.bitPP = this._readUInt16LE();
@@ -50,172 +63,110 @@ class BmpDecoder {
         this.colors = this._readUInt32LE();
         this.importantColors = this._readUInt32LE();
 
-        if (this.height < 0) {
-            this.height *= -1;
-            this.bottom_up = false;
+        // C-Code validation: Check for uncompressed 8-bit or 24-bit
+        if (this.compress !== 0) { // BI_RGB
+            throw new Error(`Unsupported BMP compression: ${this.compress}`);
+        }
+        if (this.bitPP !== 8 && this.bitPP !== 24) {
+            throw new Error(`Unsupported BMP bit depth: ${this.bitPP}. Only 8-bit and 24-bit are supported.`);
         }
 
-        // Some 16-bit BMPs are encoded as 15-bit
-        if (this.bitPP === 16 && this.compress === 3) {
-            this.bitPP = 15;
+        // C-Code validation: Check for negative height (top-down)
+        // The original C code *only* supports bottom-up (positive height).
+        if (this.height < 0) {
+            this.height = -this.height;
+            this.bottom_up = false;
+            // Note: The C code would fail here, but we can support it.
+            // Our CV pipeline *expects* bottom-up, so we will flip it.
         }
     }
 
     parsePalette() {
-        this.palette = [];
-        const numColors = this.colors === 0 && this.bitPP <= 8 ? 1 << this.bitPP : this.colors;
-
+        const numColors = this.colors === 0 ? 256 : this.colors;
         for (let i = 0; i < numColors; i++) {
-            const blue = this._readUInt8();
-            const green = this._readUInt8();
-            const red = this._readUInt8();
-            const quad = this._readUInt8();
-            this.palette.push({ red, green, blue, quad });
+            this.palette.push({
+                blue: this._readUInt8(),
+                green: this._readUInt8(),
+                red: this._readUInt8(),
+                quad: this._readUInt8(),
+            });
         }
     }
 
-    parseRGBA() {
+    parseGrayscale() {
+        // Allocate the 8-bit grayscale destination buffer
+        this.data = new Uint8Array(this.width * this.height);
         this.pos = this.offset;
-        const dataSize = this.width * this.height * 4;
-        this.data = new Uint8Array(dataSize);
 
-        const bitParser = this[`bit${this.bitPP}`];
-        if (bitParser) {
-            bitParser.call(this);
-        } else {
-            throw new Error(`Unsupported bit depth: ${this.bitPP}`);
-        }
-    }
-
-    setPixel(line, x, color) {
-        const pos = (line * this.width + x) * 4;
-        this.data[pos] = color.red || 0;
-        this.data[pos + 1] = color.green || 0;
-        this.data[pos + 2] = color.blue || 0;
-        this.data[pos + 3] = color.quad !== undefined ? color.quad : 0xff;
-    }
-
-    bit1() {
-        const rowBytes = Math.ceil(this.width / 8);
-        const padding = rowBytes % 4 === 0 ? 0 : 4 - (rowBytes % 4);
-
-        for (let y = 0; y < this.height; y++) {
-            const line = this.bottom_up ? this.height - 1 - y : y;
-            for (let xByte = 0; xByte < rowBytes; xByte++) {
-                const byte = this._readUInt8();
-                for (let i = 0; i < 8; i++) {
-                    const x = xByte * 8 + i;
-                    if (x < this.width) {
-                        const colorIndex = (byte >> (7 - i)) & 0x1;
-                        this.setPixel(line, x, this.palette[colorIndex]);
-                    }
-                }
-            }
-            this.pos += padding;
-        }
-    }
-
-    bit4() {
-        const rowBytes = Math.ceil(this.width / 2);
-        const padding = rowBytes % 4 === 0 ? 0 : 4 - (rowBytes % 4);
-
-        for (let y = 0; y < this.height; y++) {
-            const line = this.bottom_up ? this.height - 1 - y : y;
-            for (let x = 0; x < this.width; x += 2) {
-                const byte = this._readUInt8();
-                const firstPixel = byte >> 4;
-                const secondPixel = byte & 0x0f;
-                this.setPixel(line, x, this.palette[firstPixel]);
-                if ((x + 1) < this.width) {
-                    this.setPixel(line, x + 1, this.palette[secondPixel]);
-                }
-            }
-            this.pos += padding;
+        switch (this.bitPP) {
+            case 8:
+                this.bit8();
+                break;
+            case 24:
+                this.bit24();
+                break;
+            default:
+                throw new Error(`Unsupported bit depth: ${this.bitPP}`);
         }
     }
 
     bit8() {
+        // C: offset=(offset+3) & 0xFFFFFFFC;
         const padding = this.width % 4 === 0 ? 0 : 4 - (this.width % 4);
-        for (let y = 0; y < this.height; y++) {
-            const line = this.bottom_up ? this.height - 1 - y : y;
-            for (let x = 0; x < this.width; x++) {
-                const colorIndex = this._readUInt8();
-                this.setPixel(line, x, this.palette[colorIndex]);
-            }
-            this.pos += padding;
-        }
-    }
 
-    bit15() {
-        const padding = (this.width * 2) % 4 === 0 ? 0 : 4 - ((this.width * 2) % 4);
-        for (let y = 0; y < this.height; y++) {
-            const line = this.bottom_up ? this.height - 1 - y : y;
-            for (let x = 0; x < this.width; x++) {
-                const word = this._readUInt16LE();
-                const red = (word >> 10) & 0x1f;
-                const green = (word >> 5) & 0x1f;
-                const blue = word & 0x1f;
-                this.setPixel(line, x, {
-                    red: (red * 255) / 31,
-                    green: (green * 255) / 31,
-                    blue: (blue * 255) / 31,
-                });
-            }
-            this.pos += padding;
-        }
-    }
+        // Create the grayscale lookup table from the palette, just like C 'ProcessDIB'
+        const scale = new Uint8Array(256);
+        const numColors = this.palette.length > 0 ? this.palette.length : 256;
 
-    bit16() {
-        const padding = (this.width * 2) % 4 === 0 ? 0 : 4 - ((this.width * 2) % 4);
-        for (let y = 0; y < this.height; y++) {
-            const line = this.bottom_up ? this.height - 1 - y : y;
-            for (let x = 0; x < this.width; x++) {
-                const word = this._readUInt16LE();
-                const red = (word >> 11) & 0x1f;
-                const green = (word >> 5) & 0x3f;
-                const blue = word & 0x1f;
-                this.setPixel(line, x, {
-                    red: (red * 255) / 31,
-                    green: (green * 255) / 63,
-                    blue: (blue * 255) / 31,
-                });
+        if (this.palette.length > 0) {
+            for (let i = 0; i < numColors; i++) {
+                const pal = this.palette[i];
+                scale[i] = (pal.red + pal.green + pal.blue) / 3;
             }
-            this.pos += padding;
+        } else {
+            // No palette? Assume grayscale.
+            for (let i = 0; i < 256; i++) scale[i] = i;
+        }
+
+        for (let y = 0; y < this.height; y++) {
+            // C pipeline expects bottom-up data.
+            // If BMP is bottom-up, we read row 0 and write to dest. row 0.
+            // If BMP is top-down, we read row 0 and write to dest. row (h-1).
+            const destRow = this.bottom_up ? y : this.height - 1 - y;
+            const destOffset = destRow * this.width;
+
+            for (let x = 0; x < this.width; x++) {
+                const index = this._readUInt8();
+                this.data[destOffset + x] = scale[index];
+            }
+            this.pos += padding; // Skip row padding
         }
     }
 
     bit24() {
-        // Row size must be a multiple of 4 bytes.
+        // C: offset=(offset+3) & 0xFFFFFFFC;
         const padding = (this.width * 3) % 4 === 0 ? 0 : 4 - ((this.width * 3) % 4);
-        for (let y = 0; y < this.height; y++) {
-            const line = this.bottom_up ? this.height - 1 - y : y;
-            for (let x = 0; x < this.width; x++) {
-                const blue = this._readUInt8();
-                const green = this._readUInt8();
-                const red = this._readUInt8();
-                this.setPixel(line, x, { red, green, blue });
-            }
-            this.pos += padding;
-        }
-    }
 
-    bit32() {
-        // 32-bit BMPs have no padding.
         for (let y = 0; y < this.height; y++) {
-            const line = this.bottom_up ? this.height - 1 - y : y;
+            // C pipeline expects bottom-up data.
+            const destRow = this.bottom_up ? y : this.height - 1 - y;
+            const destOffset = destRow * this.width;
+
             for (let x = 0; x < this.width; x++) {
                 const blue = this._readUInt8();
                 const green = this._readUInt8();
                 const red = this._readUInt8();
-                const alpha = this._readUInt8();
-                this.setPixel(line, x, { red, green, blue, quad: alpha });
+
+                // C: *pdata++=(uchar)((pbits[0]+pbits[1]+pbits[2])/3);
+                this.data[destOffset + x] = (red + green + blue) / 3;
             }
+            this.pos += padding; // Skip row padding
         }
     }
 }
 
 /**
- * Decodes a BMP file buffer.
+ * Decodes a BMP file buffer into an 8-bit, bottom-up grayscale pixel array.
  * @param {ArrayBuffer} arrayBuffer - The buffer containing the BMP file data.
  * @returns {{data: Uint8Array, width: number, height: number}}
  */

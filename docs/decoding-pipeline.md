@@ -26,7 +26,7 @@ Recovering a digital file from a printed qdPaper page is a reverse-engineering c
 
 * **Action:** The raw stream of bits is grouped back into 128-byte chunks, reassembling the original 32x32 [Data Blocks](./data-structure.md).
 * **Analogy:** This is like piecing together a shredded document. The software knows the exact dimensions of each piece (1024 bits) and reassembles them in the correct order.
-* **Source Code:** [`/public/js/lib/decoder/decodeBlock.js`](../public/floppyPaper/lib/decoder/src/decodeBlock.js)
+* **Source Code:** [`/public/js/lib/decoder/decodedBlock.js`](../public/floppyPaper/lib/decoder/src/decodeBlock.js)
 
 ### 5. Error Correction Decoding
 

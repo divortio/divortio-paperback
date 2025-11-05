@@ -6,27 +6,31 @@ import { compressFile } from './compression.js';
 import { encryptData } from './encryption.js';
 import { initializePrinting } from './initializePrint.js';
 import { printNextPage } from './printPage.js';
+import {createPrintData} from "../primitives/createPrintData.js";
 
 /**
  * The main class for managing the printing/encoding process.
  */
 class Printer {
+    /**
+     *
+     * @param file {File}
+     * @param options{{dpi: number,dotpercent: number,redundancy: number,compression: (number),encryption: (number),password: string,printheader: (number),printborder: (number)}}
+     */
     constructor(file, options) {
         // The 'print' object holds the entire state for this job
-        this.print = {
-            step: 1,
-            ...options
-        };
+        const pData  = createPrintData()
+        /**
+         *
+         * @type {{step: number, infile: string, outbmp: string, hfile: null, modified: bigint, attributes: number, origsize: number, readsize: number, datasize: number, alignedsize: number, pagesize: number, compression: number, encryption: number, printheader: number, printborder: number, redundancy: number, buf: null, bufsize: number, readbuf: null, bufcrc: number, superdata: (Uint8Array|*), frompage: number, topage: number, ppix: number, ppiy: number, width: number, height: number, extratop: number, extrabottom: number, black: number, borderleft: number, borderright: number, bordertop: number, borderbottom: number, dx: number, dy: number, px: number, py: number, nx: number, ny: number, border: number, drawbits: null, bmi: Uint8Array<ArrayBuffer>, startdoc: number, dpi: number, dotpercent: number, password: string}}
+         */
+        this.print = {...pData, ...options};
+        this.print.step = 1;
         this.file = file;
         this.outputBitmaps = [];
     }
 
-    stop() {
-        this.print.step = 0;
-        // In JS, garbage collection handles memory, so we just reset the state.
-        this.print = { step: 0 };
-        Message("", 0);
-    }
+
 
     async* run() {
         while (this.print.step > 0) {
@@ -55,37 +59,48 @@ class Printer {
                         initializePrinting(this.print);
                         break;
                     case 7:
-                        const totalPages = Math.ceil(this.print.datasize / this.print.pagesize) || 1;
+                        const offset = this.print.frompage * this.print.pagesize;
+                        const totalPages = Math.ceil(this.print.datasize + this.print.pagesize - 1 / this.print.pagesize) || 1;
+                        // const totalPages = Math.ceil(this.print.datasize / this.print.pagesize) || 1;
                         const currentPage = this.print.frompage + 1;
                         const progress = 25 + Math.floor(70 * (currentPage / totalPages));
                         yield { status: `Generating page ${currentPage} of ${totalPages}...`, progress };
 
                         const pageResult = printNextPage(this.print);
                         if (pageResult.done) {
+                            console.log(`I'm done 8: totalPages: ${totalPages}, offset: ${offset}, datasize: ${this.print.datasize}, pagesize: ${this.print.pagesize}`);
                             this.print.step = 8;
                         } else {
                             this.outputBitmaps.push(pageResult);
                         }
                         break;
                     case 8:
+                        this.print.step = 0;
                         yield { status: "Finalizing...", progress: 95 };
-                        this.stop();
                         break;
                     default:
                         throw new Error(`Unknown printer step: ${this.print.step}`);
                 }
             } catch (err) {
-                this.stop();
+                this.print.step = 0;
+                Reporterror(`${err.name}: ${err.message} (${JSON.stringify(err.stack)})`);
                 yield { error: err.message };
                 return;
             }
         }
+
         yield { status: "Complete", progress: 100, bitmaps: this.outputBitmaps };
     }
 }
 
 let currentPrinter = null;
 
+/**
+ *
+ * @param file {File}
+ * @param options {{dpi: number,dotpercent: number,redundancy: number,compression: (number),encryption: (number),password: string,printheader: (number),printborder: (number)}}
+ * @returns {Printer}
+ */
 export function printFile(file, options) {
     if (currentPrinter && currentPrinter.print.step !== 0) {
         currentPrinter.stop();

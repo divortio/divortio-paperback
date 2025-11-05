@@ -1,28 +1,38 @@
 /**
  * @fileoverview
  * Port of the `Decodebitmap` function from `Scanner.c`.
- * This is the main entry point for the scanning/decoding process.
- * It takes a raw BMP file buffer, parses it, validates the headers,
- * and then passes the parsed image to processDIB for grayscale conversion
- * and to kick off the decoding pipeline.
+ * This is STEP 1 of the state machine in scanner.js.
+ *
+ * It:
+ * 1. Takes a raw BMP file buffer.
+ * 2. Uses the NEW `bmpDecode.js` to parse it *directly* into an 8-bit,
+ * bottom-up, grayscale pixel buffer.
+ * 3. Validates the bitmap dimensions.
+ * 4. Calls `startBitmapDecoding` to initialize the pdata struct
+ * with the 8-bit grayscale data.
+ * 5. Sets pdata.step = 2 to hand off to the next step in the scanner.js
+ * state machine.
+ *
+ * This file no longer needs processDIB.js.
  */
 
-// bmpDecode is the JS equivalent of C's fopen, fread, and manual header parsing
+// bmpDecode is the JS equivalent of C's fopen, fread, and manual header parsing.
+// This now imports the 8-bit grayscale-native version.
 import { decode } from '../bmpImage/bmpDecode.js';
-// processDIB is the next step, which this function calls on success
-import { processDIB } from './processDIB.js';
+// processDIB is no longer needed.
+// import { processDIB } from './processDIB.js'; // <-- DELETED
 import { Message, Reporterror } from '../logging/log.js';
+// We now call startBitmapDecoding directly.
+import { startBitmapDecoding } from '../decoder/src/startBitmapDecoding.js';
 
 /**
- * @typedef {import('../decoder/src/getAngle.js').PData} PData
+ * @typedef {import('../decoder/src/getGridIntensity.js').PData} PData
  */
-
-// From C: #define BI_RGB 0
-const BI_RGB = 0;
 
 /**
  * Opens and decodes a bitmap from an ArrayBuffer.
  * Corresponds to `Decodebitmap` in `Scanner.c`.
+ * This is STEP 1 of the state machine.
  *
  * @param {PData} pdata - The main processing data object.
  * @param {ArrayBuffer} fileBuffer - The ArrayBuffer of the BMP file.
@@ -32,56 +42,56 @@ const BI_RGB = 0;
 export function decodeBitmap(pdata, fileBuffer, pb_bestquality) {
     // C: char s[TEXTLEN+MAXPATH],fil[MAXFILE],ext[MAXEXT];
     // C: ...
-    // C: sprintf(s,"Reading %s%s...",fil,ext);
-    Message(`[0%] Reading bitmap...`);
+    // C: sprintf(s,\"Reading %s%s...\",fil,ext);
+    Message(`Reading bitmap...`, 0);
 
-    let bmpData;
     try {
-        // This call returns { data: Uint8Array, width: number, height: number }
-        // The data is 32-bit RGBA.
-        // bmpDecode.js throws an error if the file is not a valid BMP.
-        bmpData = decode(fileBuffer);
-    } catch (e) {
-        // If the bmpDecode library fails, we throw our own error.
-        throw new Error(`Unable to read or parse bitmap file. Original error: ${e.message}`);
-    }
+        // C: f=fopen... fread... pbfh=... pbih=...
+        // This call now parses the BMP file *directly* into the 8-bit,
+        // bottom-up, grayscale buffer that the C-pipeline expects.
+        const bmpData = decode(fileBuffer); // Returns { data, width, height }
 
-    // C: if (pbfh->bfType!=CHAR_BM ||
-    //    pbih->biSize!=sizeof(BITMAPINFOHEADER) || pbih->biPlanes!=1 ||
-    //    (pbih->biBitCount!=8 && pbih->biBitCount!=24) ||
-    //    (pbih->biBitCount==24 && pbih->biClrUsed!=0) ||
-    //    pbih->biCompression!=BI_RGB ||
-    //    pbih->biWidth<128 || pbih->biWidth>32768 ||
-    //    pbih->biHeight<128 || pbih->biHeight>32768
-    // ) {
-    // We only validate the dimensions, as bmpDecode.js has already validated the format
-    // and converted the pixel data.
-    if (
+        // C: if (pbfh->bfType!=CHAR_BM || ...
         // C: pbih->biWidth<128 || pbih->biWidth>32768 ||
-        (bmpData.width < 128 || bmpData.width > 32768) ||
-
         // C: pbih->biHeight<128 || pbih->biHeight>32768
-        (bmpData.height < 128 || bmpData.height > 32768)
-    ) {
-        // C: sprintf(s,"Unsupported bitmap type: %s%s\",fil,ext);
-        // C: Reporterror(s);
-        Reporterror(`Unsupported bitmap dimensions. Must be between 128x128 and 32768x32768 pixels.`);
-        // C: fclose(f); return -1; };
-        return -1;
+        // We only validate the dimensions, as bmpDecode.js has already
+        // handled format validation (it supports 8-bit and 24-bit).
+        if (
+            (bmpData.width < 128 || bmpData.width > 32768) ||
+            (bmpData.height < 128 || bmpData.height > 32768)
+        ) {
+            // C: sprintf(s,\"Unsupported bitmap type: %s%s\",fil,ext);
+            Reporterror(`Unsupported bitmap dimensions. Must be between 128x128 and 32768x32768 pixels.`);
+            // C: fclose(f); return -1; };
+            pdata.step = 0; // Halt the state machine
+            return -1;
+        }
+
+        // C: // Process bitmap.
+        // C: ProcessDIB(data,pbfh->bfOffBits-sizeof(BITMAPFILEHEADER));
+        //
+        // This step is no longer needed. The `bmpData.data` is already
+        // the 8-bit grayscale, bottom-up buffer.
+        //
+        // processDIB(pdata, bmpData, pb_bestquality); // <-- REMOVED
+
+        // C: Startbitmapdecoding(&pb_procdata,data,sizex,sizey);
+        //
+        // We now call startBitmapDecoding directly, just as C's ProcessDIB did.
+        // This function will set pdata.step = 1.
+        startBitmapDecoding(pdata, bmpData.data, bmpData.width, bmpData.height, pb_bestquality);
+
+        // C: ... (C code's next step is case 1: pdata->step++;)
+        //
+        // We replicate the C state machine's first step (`case 1:`),
+        // which is to simply increment the step to 2. This hands off
+        // control to the next step in the scanner.js `STEP_MAP` (getGridPosition).
+        pdata.step = 2; // Advance to 'getGridPosition'
+        return 0; // Success
+
+    } catch (err) {
+        Reporterror(err.message);
+        pdata.step = 0; // Halt the state machine
+        return -1; // Failure
     }
-
-    // C: // Allocate buffer and read file.
-    // C: fseek(f,0,SEEK_END);
-    // C: size=ftell(f)-sizeof(BITMAPFILEHEADER);
-    // C: data=(uchar *)malloc(size);
-    // C: if (data==NULL) { ... }
-    // C: fseek(f,sizeof(BITMAPFILEHEADER),SEEK_SET);
-    // C: i=fread(data,1,size,f);
-    //
-    // JS: The `bmpData` object from `bmpDecode` already contains the pixel data.
-    // The `processDIB` function will access it via `bmpData.data`.
-
-    // C: Processdib(pbih,data,pdata);
-    // We now pass the {data, width, height} object to processDIB
-    return processDIB(pdata, bmpData, pb_bestquality);
 }

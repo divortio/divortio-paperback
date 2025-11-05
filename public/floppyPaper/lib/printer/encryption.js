@@ -5,7 +5,7 @@ import { Stopprinting } from './print.js';
 
 /**
  * Encrypts the data buffer using AES-256-CBC if encryption is enabled.
- * @param {object} print - The main print data object, which contains the password.
+ * @param {{step: number, infile: string, outbmp: string, hfile: null, modified: bigint, attributes: number, origsize: number, readsize: number, datasize: number, alignedsize: number, pagesize: number, compression: number, encryption: number, printheader: number, printborder: number, redundancy: number, buf: null, bufsize: number, readbuf: null, bufcrc: number, superdata: (Uint8Array | any), frompage: number, topage: number, ppix: number, ppiy: number, width: number, height: number, extratop: number, extrabottom: number, black: number, borderleft: number, borderright: number, bordertop: number, borderbottom: number, dx: number, dy: number, px: number, py: number, nx: number, ny: number, border: number, drawbits: null, bmi: Uint8Array<ArrayBuffer>, startdoc: number}} print - The main print data object, which contains the password.
  * @returns {Promise<void>}
  */
 export async function encryptData(print) {
