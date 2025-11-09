@@ -5,11 +5,11 @@
  * physical header block printed on the paper. It contains critical file metadata
  * used for verification, reconstruction, and assembly of the entire backup.
  *
- * It is located in the C source code in `wikinaut/paperback-cli/paperback-cli-429f365367e30df6b66c8eec30029341117e5921/include/paperbak.h`.
- *
  * C Reference:
  * typedef struct __attribute__ ((packed)) t_superdata
  */
+import { ECC_SIZE, FILENAME_SIZE, SUPERBLOCK } from './constants.js';
+
 export class HeaderBlock {
     /**
      * @typedef {object} FileTimePortable
@@ -43,7 +43,7 @@ export class HeaderBlock {
         /**
          * @public
          * @type {number}
-         * @description Size of the compressed data that fits onto a single page.
+         * @description Size of compressed data that fits onto a single page.
          * @default 0
          * @see C_TYPE: uint32_t (4 bytes)
          */
@@ -127,17 +127,95 @@ export class HeaderBlock {
          * @public
          * @type {Uint8Array}
          * @description Reed-Solomon's error correction code (ECC).
-         * @default new Uint8Array(32)
+         * @default new Uint8Array(ECC_SIZE)
          * @see C_TYPE: uchar[ECC_SIZE] (32 bytes)
          */
-        this.ecc = props.ecc instanceof Uint8Array && props.ecc.length === 32
+        this.ecc = props.ecc instanceof Uint8Array && props.ecc.length === ECC_SIZE
             ? props.ecc
-            : new Uint8Array(32);
+            : new Uint8Array(ECC_SIZE);
+    }
+
+    /**
+     * Converts a standard JavaScript millisecond timestamp into the Windows FileTimePortable format (100-nanosecond intervals since Jan 1, 1601).
+     * @param {number} timestamp - The JavaScript timestamp in milliseconds (e.g., Date.now()).
+     * @returns {void}
+     */
+    setDateTime(timestamp) {
+        // Time difference between 1601 and 1970 in 100-nanosecond intervals
+        const EPOCH_DIFFERENCE = 11644473600000; // Milliseconds from 1601 to 1970
+
+        // Total 100-nanosecond intervals:
+        const fileTime = BigInt(Math.floor(timestamp)) * 10000n + BigInt(EPOCH_DIFFERENCE) * 10000n;
+
+        this.modified = {
+            // Splitting 64-bit integer into two 32-bit components
+            dwLowDateTime: Number(fileTime & 0xFFFFFFFFn),
+            dwHighDateTime: Number(fileTime >> 32n)
+        };
+    }
+
+    /**
+     * Packs the contents of the HeaderBlock instance into a 128-byte contiguous buffer,
+     * ready for drawing or CRC/ECC calculation.
+     *
+     * @returns {Uint8Array} A 128-byte buffer representing the raw, packed t_superdata block.
+     * @throws {Error} If the final packed length does not match HeaderBlock.byteLength (128 bytes).
+     * @see C_EQUIVALENT: Emulates the memory layout of the C structure __attribute__((packed)) t_superdata.
+     */
+    pack() {
+        const BLOCK_SIZE = HeaderBlock.byteLength; // 128
+        const buffer = new ArrayBuffer(BLOCK_SIZE);
+        const view = new DataView(buffer);
+        const bytes = new Uint8Array(buffer);
+        let offset = 0;
+
+        // 1. Core Metadata (Offset 0 to 20)
+        view.setUint32(offset, this.addr, true); offset += 4; // 0
+        view.setUint32(offset, this.datasize, true); offset += 4; // 4
+        view.setUint32(offset, this.pagesize, true); offset += 4; // 8
+        view.setUint32(offset, this.origsize, true); offset += 4; // 12
+        view.setUint8(offset, this.mode); offset += 1; // 16
+        view.setUint8(offset, this.attributes); offset += 1; // 17
+        view.setUint16(offset, this.page, true); offset += 2; // 18
+
+        // 2. Modified Time (FileTimePortable: 8 bytes, Offset 20 to 28)
+        view.setUint32(offset, this.modified.dwLowDateTime, true); offset += 4;
+        view.setUint32(offset, this.modified.dwHighDateTime, true); offset += 4;
+
+        // 3. File CRC (2 bytes, Offset 28 to 30)
+        view.setUint16(offset, this.filecrc, true); offset += 2;
+
+        // 4. File Name + Padding (64 bytes, Offset 30 to 94)
+        const nameBytes = new TextEncoder().encode(this.name);
+
+        // Ensure name buffer is 64 bytes wide and zeroed, then set name content.
+        const nameBuffer = new Uint8Array(buffer, offset, FILENAME_SIZE);
+        nameBuffer.fill(0);
+        nameBuffer.set(nameBytes.subarray(0, FILENAME_SIZE));
+
+        offset += FILENAME_SIZE; // 94
+
+        // 5. Cyclic Redundancy CRC (2 bytes, Offset 94 to 96)
+        // ACTION: PACK THE INSTANCE'S CRC VALUE. (Was previously set to 0)
+        view.setUint16(offset, this.crc, true);
+        offset += 2; // 96
+
+        // 6. ECC Field (32 bytes, Offset 96 to 128)
+        // ACTION: PACK THE INSTANCE'S ECC BUFFER. (Was previously skipped/left as 0s)
+        bytes.set(this.ecc, offset);
+        offset += ECC_SIZE; // 128
+
+        // 7. Validation Check
+        if (offset !== BLOCK_SIZE) {
+            throw new Error(`Packing Error: HeaderBlock size mismatch. Expected ${BLOCK_SIZE} bytes but packed ${offset}.`);
+        }
+
+        return bytes;
     }
 
     /**
      * Retrieves the total fixed size of the HeaderBlock structure in bytes.
-     * @returns {number} The size of the block (which is 128 bytes, same as t_data).
+     * @returns {number} The size of the block (128 bytes).
      */
     static get byteLength() {
         return 128;

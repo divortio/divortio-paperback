@@ -11,10 +11,14 @@
  * - State: 1 (Open file and allocate buffers)
  */
 import { Reporterror } from '../logging/log.js';
-import { Stopprinting } from './print.js';
+import { stopPrinting } from './stopPrinting.js';
 import { MAXSIZE, PACKLEN } from '../classes/constants.js';
 
-// Helper: Convert JS Date timestamp to C-like FileTimePortable structure
+/**
+ * convertJsTimestampToFileTime
+ * @param timestamp {number}
+ * @returns {{dwLowDateTime: number, dwHighDateTime: number}}
+ */
 function convertJsTimestampToFileTime(timestamp) {
     // JavaScript timestamp is milliseconds since Unix epoch (Jan 1, 1970).
     // Windows FILETIME is 100-nanosecond intervals since Jan 1, 1601.
@@ -51,7 +55,7 @@ export async function prepareFileToPrint(globalState, encoderState, file, lastMo
 
     if (encoderState.origsize === 0 || encoderState.origsize > MAXSIZE) {
         Reporterror("Invalid file size (0 or exceeds maximum theoretical length)");
-        Stopprinting(encoderState);
+        stopPrinting(encoderState);
         return;
     }
 

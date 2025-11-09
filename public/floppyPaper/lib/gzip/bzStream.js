@@ -1,3 +1,4 @@
+import {Deflate} from '../../vendor/pako/dist/pako.esm.js'
 /**
  * @file bzStream.js
  * @overview
@@ -5,6 +6,7 @@
  * It holds the internal Pako instance and a queue for the compressed data chunks.
  */
 export class BzStream {
+
     constructor(props = {}) {
         // --- C-Equivalent Fields for Streaming Control ---
 
@@ -66,7 +68,7 @@ export class BzStream {
 
         /**
          * @private
-         * @type {import('pako').Deflate | null}
+         * @type {Deflate | null}
          * @description The active Pako Deflate/Gzip instance.
          * @default null
          * @see C_TYPE: void* state

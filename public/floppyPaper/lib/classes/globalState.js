@@ -9,7 +9,7 @@
  * Global variables prefixed with `pb_` declared in `paperbak.h`
  * and initialized in `main.c`.
  */
-class GlobalState {
+export class GlobalState {
     /**
      * Creates an instance of GlobalState, initializing properties to their documented C-style defaults.
      * @param {object} [props={}] - Optional initial property values.
@@ -91,10 +91,10 @@ class GlobalState {
          * @public
          * @type {number}
          * @description Dot raster, dots per inch (DPI) for encoding.
-         * @default 200
+         * @default 300
          * @see C_TYPE: int
          */
-        this.dpi = props.dpi !== undefined ? props.dpi : 200;
+        this.dpi = props.dpi !== undefined && props.dpi >= 200 && props.dpi <= 1200 ? props.dpi : 300;
 
         /**
          * @public

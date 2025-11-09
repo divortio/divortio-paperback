@@ -13,9 +13,10 @@
 
 import { crc16 } from '../crc16/crc16.js';
 import { Reporterror, Message } from '../logging/log.js';
-import { Stopprinting } from './print.js';
+// import { stopPrinting } from './bak/print.js';
 import { deriveKey, aesCbcEncrypt } from '../aes/aesCrypto.js';
 import {EncoderState}    from "../classes/encoderState.js";
+import {stopPrinting} from "./stopPrinting.js";
 
 const PBKDF2_SALT_LENGTH = 16;
 const AES_IV_LENGTH = 16;
@@ -42,7 +43,7 @@ export async function encryptData(encoderState, password = '') {
 
     if (password.length > 32) {
         Reporterror("Password must be 32 characters or less.");
-        Stopprinting(encoderState);
+        stopPrinting(encoderState);
         return;
     }
 
@@ -87,7 +88,7 @@ export async function encryptData(encoderState, password = '') {
 
     } catch (e) {
         Reporterror("Encryption failed: " + e.message);
-        Stopprinting(encoderState);
+        stopPrinting(encoderState);
         // Throw to propagate the promise rejection if necessary, or just rely on Stopprinting.
     }
 }

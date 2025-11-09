@@ -10,7 +10,7 @@
  * - State: 3 (Read next piece of data and compress)
  */
 import { Reporterror, Message } from '../logging/log.js';
-import { Stopprinting } from './print.js';
+import { stopPrinting } from './stopPrinting.js';
 import { BZ2_bzCompress, BZ2_bzCompressEnd, BZ_RUN_OK, BZ_RUN, BZ_SEQUENCE_ERROR } from '../gzip/bz2API.js';
 import { PACKLEN } from '../classes/constants.js';
 
@@ -51,7 +51,7 @@ export function readAndCompress(encoderState) {
     // Simulate C error check: if we got less data than expected, something is wrong.
     if (chunkToRead.length !== size) {
         Reporterror("Internal error: Data chunk mismatch during read.");
-        Stopprinting(encoderState);
+        stopPrinting(encoderState);
         return;
     }
 
@@ -72,7 +72,7 @@ export function readAndCompress(encoderState) {
         // 4. Check for stream errors (C: if (print->bzstream.avail_in!=0 || success!=BZ_RUN_OK))
         if (encoderState.bzstream.avail_in !== 0 || success !== BZ_RUN_OK) {
             Reporterror("Unable to compress data. Try to disable compression.");
-            Stopprinting(encoderState);
+            stopPrinting(encoderState);
             return;
         }
 

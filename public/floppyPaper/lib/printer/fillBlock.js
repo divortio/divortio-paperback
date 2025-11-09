@@ -1,6 +1,6 @@
 // src/printer/fillBlock.js
 
-import { NDOT } from '../primitives/constants.js';
+import { NDOT } from '../classes/constants.js';
 
 /**
  * Fills a block area with a regular alignment raster pattern, clipping to the bitmap edges.
@@ -50,13 +50,12 @@ export function fillBlock(blockx, blocky, bits, width, height, border, nx, ny, d
                         if (x < 0 || x >= width || y < 0 || y >= height) {
                             continue;
                         }
-
                         const pixelIndex = (height - y - 1) * width + x;
                         bits[pixelIndex] = black;
                     }
                 }
-            }
-            t >>>= 1; // Unsigned right shift for the next bit.
+            }Unsigned
+            t >>>= 1; //  right shift for the next bit.
         }
     }
 }

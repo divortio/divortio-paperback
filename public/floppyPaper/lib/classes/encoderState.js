@@ -445,5 +445,14 @@ export class EncoderState {
          * @see C_TYPE: int (4 bytes)
          */
         this.startdoc = props.startdoc !== undefined ? props.startdoc : 0;
+
+        /**
+         * @public
+         * @type {Array<BMPData>}
+         * @description Storage array for all generated BMP files (pages). This replaces the C program's direct disk I/O.
+         * @default []
+         */
+
+        this.outputFiles = props.outputFiles instanceof Array ? props.outputFiles : [];
     }
 }
