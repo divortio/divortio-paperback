@@ -9,14 +9,17 @@
  * C Reference:
  * typedef struct __attribute__ ((packed)) t_data
  */
-import { NDATA, ECC_SIZE, SUPERBLOCK } from './constants.js';
+import { NDATA, ECC_SIZE, SUPERBLOCK } from '../constants.js';
 
 export class DataBlock {
     /**
      * Creates an instance of DataBlock, initializing properties to their C-style defaults.
-     * @param {object} [props={}] - Optional initial property values.
+     * @param addr {number}
+     * @param data {Uint8Array}
+     * @param crc {number}
+     * @param ecc {number}
      */
-    constructor(props = {}) {
+    constructor(addr=0,data=null, crc=0,ecc=0) {
         /**
          * @public
          * @type {number}
@@ -24,7 +27,7 @@ export class DataBlock {
          * @default 0
          * @see C_TYPE: uint32_t (4 bytes)
          */
-        this.addr = props.addr !== undefined ? props.addr : 0;
+        this.addr = addr !== undefined ? addr : 0;
 
         /**
          * @public
@@ -33,8 +36,8 @@ export class DataBlock {
          * @default new Uint8Array(NDATA)
          * @see C_TYPE: uchar[NDATA] (90 bytes)
          */
-        this.data = props.data instanceof Uint8Array && props.data.length === NDATA
-            ? props.data
+        this.data = data instanceof Uint8Array && data.length === NDATA
+            ? data
             : new Uint8Array(NDATA);
 
         /**
@@ -44,7 +47,7 @@ export class DataBlock {
          * @default 0
          * @see C_TYPE: ushort (uint16_t - 2 bytes)
          */
-        this.crc = props.crc !== undefined ? props.crc : 0;
+        this.crc = crc !== undefined ? crc : 0;
 
         /**
          * @public
@@ -53,8 +56,8 @@ export class DataBlock {
          * @default new Uint8Array(ECC_SIZE)
          * @see C_TYPE: uchar[ECC_SIZE] (32 bytes)
          */
-        this.ecc = props.ecc instanceof Uint8Array && props.ecc.length === ECC_SIZE
-            ? props.ecc
+        this.ecc = ecc instanceof Uint8Array && ecc.length === ECC_SIZE
+            ? ecc
             : new Uint8Array(ECC_SIZE);
     }
 

@@ -11,7 +11,7 @@
  * C Reference:
  * typedef struct t_procdata
  */
-import { DataBlock } from './dataBlock.js';
+import { DataBlock } from './blocks/dataBlock.js';
 import { DecodedBlock } from './decodedBlock.js';
 import { DecodedHeaderBlock } from './decodedHeaderBlock.js';
 import { M_BEST, NHYST, SUBDX } from './constants.js';
@@ -241,7 +241,7 @@ export class DecoderState {
         /**
          * @public
          * @type {number}
-         * @description Dimensions of the block processing buffers in X, in pixels.
+         * @description PixelDimensions of the block processing buffers in X, in pixels.
          * @default 0
          * @see C_TYPE: int (4 bytes)
          */
@@ -250,7 +250,7 @@ export class DecoderState {
         /**
          * @public
          * @type {number}
-         * @description Dimensions of the block processing buffers in Y, in pixels.
+         * @description PixelDimensions of the block processing buffers in Y, in pixels.
          * @default 0
          * @see C_TYPE: int (4 bytes)
          */

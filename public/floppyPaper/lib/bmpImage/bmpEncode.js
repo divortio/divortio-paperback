@@ -7,7 +7,7 @@
  * It NO LONGER encodes 24-bit or 32-bit RGBA images.
  *
  * It now:
- * 1. Expects an 8-bit, 1-channel, BOTTOM-UP grayscale pixel buffer (e.g., from printPage.js).
+ * 1. Expects an 8-bit, 1-channel, BOTTOM-UP grayscale pixel buffer (e.g., from imageDimensions.js).
  * 2. Encodes a standard Windows v3 8-bit paletted BMP file.
  * 3. Writes a 256-color grayscale palette.
  */
@@ -75,7 +75,7 @@ class BmpEncoder {
 
         // 4. Pixel Data (Bottom-up 8-bit)
         // This assumes the input this.dataBuffer is *already* bottom-up,
-        // which matches the output of printPage.js.
+        // which matches the output of imageDimensions.js.
         pos = this.offset;
         for (let y = 0; y < this.height; y++) {
             const rowOffset = y * this.width;

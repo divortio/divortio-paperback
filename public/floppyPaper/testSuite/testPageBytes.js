@@ -4,7 +4,7 @@
  * Sweeps through various DPI and Redundancy combinations, calculating page geometry
  * and capacity (pagesize) and outputting the results as a GFM Markdown table.
  */
-import { PrintPage } from '../lib/classes/printPage.js';
+import { PrintPage } from '../lib/classes/printPage.js.bak';
 
 // Global Configuration
 const CONFIG = {
@@ -40,7 +40,7 @@ function formatMegaPixels(pixels) {
 
 // --- Execution ---
 
-console.log('--- PrintPage Geometry and Capacity Test Suite (GFM Markdown) ---');
+console.log('--- ImageDimensions Geometry and Capacity Test Suite (GFM Markdown) ---');
 
 // Get arrays of values in reverse order
 const dpis = [];

@@ -1,5 +1,5 @@
 /**
- * @file headerBlock.js
+ * @file superData.js
  * @overview
  * This class mirrors the C structure `t_superdata`, which represents the 128-byte
  * physical header block printed on the paper. It contains critical file metadata
@@ -20,7 +20,7 @@ export class DecodedHeaderBlock {
      */
 
     /**
-     * Creates an instance of HeaderBlock, initializing properties to their C-style defaults.
+     * Creates an instance of SuperData, initializing properties to their C-style defaults.
      * @param {object} [props={}] - Optional initial property values.
      */
     constructor(props = {}) {
@@ -138,7 +138,7 @@ export class DecodedHeaderBlock {
     }
 
     /**
-     * Retrieves the total fixed size of the HeaderBlock structure in bytes.
+     * Retrieves the total fixed size of the SuperData structure in bytes.
      * @returns {number} The size of the block (which is 128 bytes, same as t_data).
      */
     static get byteLength() {

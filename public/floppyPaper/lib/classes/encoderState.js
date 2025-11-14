@@ -12,16 +12,13 @@
  * C Reference:
  * typedef struct t_printdata
  */
-import { HeaderBlock } from './headerBlock.js';
+import { SuperData } from './blocks/superData.js';
 import { BzStream } from '../gzip/bzStream.js';
 import { PACKLEN } from './constants.js';
+import {FileTimePortable} from "./blocks/fileTimePortable.js";
 
 export class EncoderState {
-    /**
-     * @typedef {object} FileTimePortable
-     * @property {number} dwLowDateTime - Low 32-bits of the 64-bit file time.
-     * @property {number} dwHighDateTime - High 32-bits of the 64-bit file time.
-     */
+
 
     /**
      * Creates an instance of EncoderState, initializing properties to their C-style defaults.
@@ -221,12 +218,12 @@ export class EncoderState {
 
         /**
          * @public
-         * @type {HeaderBlock}
+         * @type {SuperData}
          * @description The identification block to be printed at the beginning of each page.
-         * @default new HeaderBlock()
+         * @default new SuperData()
          * @see C_TYPE: t_superdata
          */
-        this.superdata = props.superdata instanceof HeaderBlock ? props.superdata : new HeaderBlock();
+        this.superdata = props.superdata instanceof SuperData ? props.superdata : new SuperData();
 
         /**
          * @public

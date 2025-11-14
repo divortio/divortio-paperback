@@ -38,7 +38,7 @@ The process of converting a digital file into a printable qdPaper image is a mul
 
 * **Action:** The final stage takes each complete data block (now 128 bytes: 4-byte address, 90-byte data, 2-byte CRC, 32-byte ECC) and renders it as a 32x32 grid of black and white dots into a 1-channel grayscale pixel buffer.
 * **Purpose:** To create the final visual representation of the data. This raw pixel buffer is then passed to an encoder to create the final, downloadable `.bmp` file.
-* **Source Code:** [`/public/js/lib/printer/printPage.js`](../public/floppyPaper/lib/printer/bak/printPage.js), [`/public/js/lib/printer/drawBlock.js`](../public/floppyPaper/lib/printer/drawBlock.js)
+* **Source Code:** [`/public/js/lib/printer/imageDimensions.js`](../public/floppyPaper/lib/printer/bak/printPage.js), [`/public/js/lib/printer/drawBlock.js`](../public/floppyPaper/lib/printer/drawBlock.js)
 
 <br>
 

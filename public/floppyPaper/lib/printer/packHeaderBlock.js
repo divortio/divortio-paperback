@@ -1,21 +1,21 @@
 /**
  * @file packHeaderBlock.js
  * @overview
- * Utility to convert the logical HeaderBlock instance (t_superdata) into its
+ * Utility to convert the logical SuperData instance (t_superdata) into its
  * raw, packed 128-byte binary format. This is necessary because C used a packed
  * struct while the JS class holds data in separate properties.
  */
 import { ECC_SIZE, FILENAME_SIZE } from '../classes/constants.js';
 
 /**
- * Packs a HeaderBlock instance into a 128-byte Uint8Array/ArrayBuffer.
+ * Packs a SuperData instance into a 128-byte Uint8Array/ArrayBuffer.
  *
- * @param {HeaderBlock} headerBlock - The structured header block data.
+ * @param {SuperData} headerBlock - The structured header block data.
  * @param {Uint8Array} [salt] - The 16-byte salt (if encryption is enabled).
  * @param {Uint8Array} [iv] - The 16-byte IV (if encryption is enabled).
  * @returns {Uint8Array} A 128-byte buffer representing the raw, packed t_superdata block.
  */
-export function packHeaderBlock(headerBlock, salt, iv) {
+export function packHeaderBlock(headerBlock, salt=null, iv=null) {
     const BLOCK_SIZE = 128;
     const buffer = new ArrayBuffer(BLOCK_SIZE);
     const view = new DataView(buffer);

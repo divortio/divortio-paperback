@@ -1,5 +1,5 @@
 /**
- * @file headerBlock.js
+ * @file superData.js
  * @overview
  * This class mirrors the C structure `t_superdata`, which represents the 128-byte
  * physical header block printed on the paper. It contains critical file metadata
@@ -8,46 +8,71 @@
  * C Reference:
  * typedef struct __attribute__ ((packed)) t_superdata
  */
-import { ECC_SIZE, FILENAME_SIZE, SUPERBLOCK } from './constants.js';
+import { ECC_SIZE, FILENAME_SIZE, SUPERBLOCK } from '../constants.js';
+// Import the external class
+import { FileTimePortable } from './fileTimePortable.js';
 
-export class HeaderBlock {
-    /**
-     * @typedef {object} FileTimePortable
-     * @property {number} dwLowDateTime - Low 32-bits of the 64-bit file time.
-     * @property {number} dwHighDateTime - High 32-bits of the 64-bit file time.
-     */
+
+/**
+ * @public
+ * @type {number}
+ * @description Bit flag (0x01) indicating the file data is compressed. Used in the 'mode' bitmask.
+ * @see C_VAR: PBM_COMPRESSED (0x01)
+ */
+export const PBM_COMPRESSED = 0x01;
+
+/**
+ * @public
+ * @type {number}
+ * @description Bit flag (0x02) indicating the file data is encrypted. Used in the 'mode' bitmask.
+ * @see C_VAR: PBM_ENCRYPTED (0x02)
+ */
+export const PBM_ENCRYPTED = 0x02;
+
+/**
+ *
+ * @param path {string}
+ * @returns {{full: string}}
+ */
+function fnsplit(path) {
+    const parts = path.split(/[/\\]/);
+    const fullFileName = parts.pop() || 'backup';
+    return { full: fullFileName };
+}
+
+export class SuperData {
+    // REMOVED REDUNDANT JSDOC type definition for FileTimePortable
 
     /**
-     * Creates an instance of HeaderBlock, initializing properties to their C-style defaults.
-     * @param {object} [props={}] - Optional initial property values.
+     * Creates an instance of SuperData, initializing properties to their C-style defaults.
+     * @param pageNum {number}
+     * @param origSize {number} - Size of the original (uncompressed) data.
+     * @param dataSize {number} -  Size of the compressed data.
+     * @param pageSize {number} - Size of compressed data that fits onto a single page.
+     * @param fileCrc {number}
+     * @param modified {FileTimePortable}
+     * @param fileName {string}
+     * @param compression {boolean|number}
+     * @param encryption {boolean}
      */
-    constructor(props = {}) {
+    constructor(pageNum,
+                origSize,
+                dataSize,
+                pageSize,
+                fileCrc,
+                modified,
+                fileName,
+                compression=9,
+                encryption=false
+    ) {
         /**
          * @public
          * @type {number}
          * @description The block offset or special code. Expected to be SUPERBLOCK (0xFFFFFFFF).
-         * @default 0
+         * @default  0xFFFFFFFF
          * @see C_TYPE: uint32_t (4 bytes)
          */
-        this.addr = props.addr !== undefined ? props.addr : 0;
-
-        /**
-         * @public
-         * @type {number}
-         * @description Size of the compressed data.
-         * @default 0
-         * @see C_TYPE: uint32_t (4 bytes)
-         */
-        this.datasize = props.datasize !== undefined ? props.datasize : 0;
-
-        /**
-         * @public
-         * @type {number}
-         * @description Size of compressed data that fits onto a single page.
-         * @default 0
-         * @see C_TYPE: uint32_t (4 bytes)
-         */
-        this.pagesize = props.pagesize !== undefined ? props.pagesize : 0;
+        this.addr =  0xFFFFFFFF;
 
         /**
          * @public
@@ -56,7 +81,25 @@ export class HeaderBlock {
          * @default 0
          * @see C_TYPE: uint32_t (4 bytes)
          */
-        this.origsize = props.origsize !== undefined ? props.origsize : 0;
+        this.origsize = origSize !== undefined ? origSize : 0;
+
+        /**
+         * @public
+         * @type {number}
+         * @description Size of the compressed data.
+         * @default 0
+         * @see C_TYPE: uint32_t (4 bytes)
+         */
+        this.datasize = dataSize !== undefined ? dataSize : 0;
+
+        /**
+         * @public
+         * @type {number}
+         * @description Size of compressed data that fits onto a single page.
+         * @default 0
+         * @see C_TYPE: uint32_t (4 bytes)
+         */
+        this.pagesize = pageSize !== undefined ? pageSize : 0;
 
         /**
          * @public
@@ -65,7 +108,14 @@ export class HeaderBlock {
          * @default 0
          * @see C_TYPE: uchar (uint8_t - 1 byte)
          */
-        this.mode = props.mode !== undefined ? props.mode : 0;
+
+        this.mode = 0;
+        if (compression) {
+            this.mode |= 0x01;
+        }
+        if (encryption) {
+            this.mode |= 0x02;
+        }
 
         /**
          * @public
@@ -74,7 +124,7 @@ export class HeaderBlock {
          * @default 0
          * @see C_TYPE: uchar (uint8_t - 1 byte)
          */
-        this.attributes = props.attributes !== undefined ? props.attributes : 0;
+        this.attributes = 0x00000080;
 
         /**
          * @public
@@ -83,18 +133,17 @@ export class HeaderBlock {
          * @default 0
          * @see C_TYPE: ushort (uint16_t - 2 bytes)
          */
-        this.page = props.page !== undefined ? props.page : 0;
+        this.page = pageNum !== undefined ? pageNum : 0;
 
         /**
          * @public
          * @type {FileTimePortable}
          * @description Last modification time of the original file (64-bit value split into two 32-bit parts).
-         * @default {dwLowDateTime: 0, dwHighDateTime: 0}
+         * @default new FileTimePortable(0, 0)
          * @see C_TYPE: FileTimePortable (struct - 8 bytes total)
          */
-        this.modified = props.modified !== undefined
-            ? { dwLowDateTime: props.modified.dwLowDateTime || 0, dwHighDateTime: props.modified.dwHighDateTime || 0 }
-            : { dwLowDateTime: 0, dwHighDateTime: 0 };
+        // Use FileTimePortable class instance for initialization
+        this.modified = modified instanceof FileTimePortable ? modified : new FileTimePortable(modified?.dwLowDateTime || 0, modified?.dwHighDateTime || 0);
 
         /**
          * @public
@@ -103,7 +152,7 @@ export class HeaderBlock {
          * @default 0
          * @see C_TYPE: ushort (uint16_t - 2 bytes)
          */
-        this.filecrc = props.filecrc !== undefined ? props.filecrc : 0;
+        this.filecrc = fileCrc !== undefined ? fileCrc : 0;
 
         /**
          * @public
@@ -112,7 +161,7 @@ export class HeaderBlock {
          * @default ""
          * @see C_TYPE: char[FILENAME_SIZE] (64 bytes)
          */
-        this.name = props.name !== undefined ? props.name : "";
+        this.name = fileName !== undefined ? fnsplit(fileName).full.substring(0,64 ): "";
 
         /**
          * @public
@@ -121,7 +170,7 @@ export class HeaderBlock {
          * @default 0
          * @see C_TYPE: ushort (uint16_t - 2 bytes)
          */
-        this.crc = props.crc !== undefined ? props.crc : 0;
+        this.crc =  0;
 
         /**
          * @public
@@ -130,40 +179,21 @@ export class HeaderBlock {
          * @default new Uint8Array(ECC_SIZE)
          * @see C_TYPE: uchar[ECC_SIZE] (32 bytes)
          */
-        this.ecc = props.ecc instanceof Uint8Array && props.ecc.length === ECC_SIZE
-            ? props.ecc
-            : new Uint8Array(ECC_SIZE);
+        this.ecc = new Uint8Array(ECC_SIZE);
     }
 
-    /**
-     * Converts a standard JavaScript millisecond timestamp into the Windows FileTimePortable format (100-nanosecond intervals since Jan 1, 1601).
-     * @param {number} timestamp - The JavaScript timestamp in milliseconds (e.g., Date.now()).
-     * @returns {void}
-     */
-    setDateTime(timestamp) {
-        // Time difference between 1601 and 1970 in 100-nanosecond intervals
-        const EPOCH_DIFFERENCE = 11644473600000; // Milliseconds from 1601 to 1970
-
-        // Total 100-nanosecond intervals:
-        const fileTime = BigInt(Math.floor(timestamp)) * 10000n + BigInt(EPOCH_DIFFERENCE) * 10000n;
-
-        this.modified = {
-            // Splitting 64-bit integer into two 32-bit components
-            dwLowDateTime: Number(fileTime & 0xFFFFFFFFn),
-            dwHighDateTime: Number(fileTime >> 32n)
-        };
-    }
+    // REMOVED: setDateTime is now handled by the FileTimePortable class itself
 
     /**
-     * Packs the contents of the HeaderBlock instance into a 128-byte contiguous buffer,
+     * Packs the contents of the SuperData instance into a 128-byte contiguous buffer,
      * ready for drawing or CRC/ECC calculation.
      *
      * @returns {Uint8Array} A 128-byte buffer representing the raw, packed t_superdata block.
-     * @throws {Error} If the final packed length does not match HeaderBlock.byteLength (128 bytes).
+     * @throws {Error} If the final packed length does not match SuperData.byteLength (128 bytes).
      * @see C_EQUIVALENT: Emulates the memory layout of the C structure __attribute__((packed)) t_superdata.
      */
     pack() {
-        const BLOCK_SIZE = HeaderBlock.byteLength; // 128
+        const BLOCK_SIZE = SuperData.byteLength; // 128
         const buffer = new ArrayBuffer(BLOCK_SIZE);
         const view = new DataView(buffer);
         const bytes = new Uint8Array(buffer);
@@ -179,6 +209,7 @@ export class HeaderBlock {
         view.setUint16(offset, this.page, true); offset += 2; // 18
 
         // 2. Modified Time (FileTimePortable: 8 bytes, Offset 20 to 28)
+        // Accessing properties of the FileTimePortable instance
         view.setUint32(offset, this.modified.dwLowDateTime, true); offset += 4;
         view.setUint32(offset, this.modified.dwHighDateTime, true); offset += 4;
 
@@ -196,12 +227,10 @@ export class HeaderBlock {
         offset += FILENAME_SIZE; // 94
 
         // 5. Cyclic Redundancy CRC (2 bytes, Offset 94 to 96)
-        // ACTION: PACK THE INSTANCE'S CRC VALUE. (Was previously set to 0)
         view.setUint16(offset, this.crc, true);
         offset += 2; // 96
 
         // 6. ECC Field (32 bytes, Offset 96 to 128)
-        // ACTION: PACK THE INSTANCE'S ECC BUFFER. (Was previously skipped/left as 0s)
         bytes.set(this.ecc, offset);
         offset += ECC_SIZE; // 128
 
@@ -209,12 +238,11 @@ export class HeaderBlock {
         if (offset !== BLOCK_SIZE) {
             throw new Error(`Packing Error: HeaderBlock size mismatch. Expected ${BLOCK_SIZE} bytes but packed ${offset}.`);
         }
-
         return bytes;
     }
 
     /**
-     * Retrieves the total fixed size of the HeaderBlock structure in bytes.
+     * Retrieves the total fixed size of the SuperData structure in bytes.
      * @returns {number} The size of the block (128 bytes).
      */
     static get byteLength() {

@@ -47,6 +47,7 @@ export function initializePrinting(encoderState, globalState) {
     encoderState.superdata.filecrc = encoderState.bufcrc;
     const fileParts = fnsplit(encoderState.infile);
     encoderState.superdata.name = fileParts.full.substring(0, FILENAME_SIZE);
+
     Message(`Encoding ${encoderState.superdata.name} to bitmap`, 0);
 
     // --- 2. Determine Resolution and Paper Size (A4 Default) ---
@@ -55,7 +56,7 @@ export function initializePrinting(encoderState, globalState) {
     // encoderState.ppiy = globalState.resx === 0 || globalState.resy === 0 ? globalState.dpi : globalState.resy;
     encoderState.ppix = globalState.dpi;
     encoderState.ppiy = globalState.dpi;
-    // A4 Paper Dimensions (C default: 8270 x 11690 thousandths of inch)
+    // A4 Paper PixelDimensions (C default: 8270 x 11690 thousandths of inch)
     // C: width=print->ppix*8270/1000; height=print->ppiy*11690/1000;
     width = Math.floor((encoderState.ppix * 8270) / 1000);
     height = Math.floor((encoderState.ppiy * 11690) / 1000);
@@ -83,7 +84,7 @@ export function initializePrinting(encoderState, globalState) {
     py = max(Math.floor((dy * globalState.dotPercent) / 100), 1);
     encoderState.border = encoderState.printborder ? dx * 16 : 0;
 
-    // --- 5. Calculate Data Grid Dimensions (nx, ny) ---
+    // --- 5. Calculate Data Grid PixelDimensions (nx, ny) ---
     // Note: Uses the reduced 'width' and 'height' variables.
     nx = Math.floor((width - px - 2 * encoderState.border) / (NDOT * dx + 3 * dx));
     ny = Math.floor((height - py - 2 * encoderState.border) / (NDOT * dy + 3 * dy));
@@ -104,6 +105,7 @@ export function initializePrinting(encoderState, globalState) {
     const current_redundancy = Math.floor(encoderState.redundancy);
     encoderState.pagesize = Math.floor(
         ((nx * ny - current_redundancy - 2) / (current_redundancy + 1)) * current_redundancy * NDATA);
+
 
     // Calculate required total pages and set topage (index of the last page)
     const npages_required = Math.ceil(encoderState.alignedsize / encoderState.pagesize);

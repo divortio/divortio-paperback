@@ -12,12 +12,12 @@
 import { Reporterror, Message } from '../logging/log.js';
 import { stopPrinting } from './stopPrinting.js';
 import { NDATA, NDOT } from '../classes/constants.js';
-import { DataBlock } from '../classes/dataBlock.js';
+import { DataBlock } from '../classes/blocks/dataBlock.js';
 import { encode as encodeBmp } from '../bmpImage/bmpEncode.js';
 import { BMPData } from '../classes/bmpData.js';
 import { drawBlock } from './drawBlock.js';
 import { drawGridLines } from './drawGridLines.js';
-import { packHeaderBlock } from './packHeaderBlock.js'; // <-- NEW: Packs HeaderBlock structure
+import { packHeaderBlock } from './packHeaderBlock.js'; // <-- NEW: Packs SuperData structure
 import { packDataBlock } from './packDataBlock.js';   // <-- NEW: Packs DataBlock/Checksum structure
 
 
@@ -25,6 +25,13 @@ import { packDataBlock } from './packDataBlock.js';   // <-- NEW: Packs DataBloc
 function max(a, b) { return a > b ? a : b; }
 function min(a, b) { return a < b ? a : b; }
 
+/**
+ *
+ * @param path {string}
+ * @param page {number}
+ * @param npages {number}
+ * @returns {string}
+ */
 function fnsplitForOutput(path, page, npages) {
     // Generates the final output filename (e.g., file_0001.bmp)
     const parts = path.split(/[/\\]/);
@@ -89,10 +96,9 @@ export function printNextPage(encoderState) {
 
     // 4. Update Header Block Page Number and pack it once
     encoderState.superdata.page = encoderState.frompage + 1;
+
     const rawSuperBlock = packHeaderBlock(
-        encoderState.superdata,
-        encoderState.salt,
-        encoderState.iv
+        encoderState.superdata
     );
 
     // --- 5. Main Data and Redundancy Block Loop ---
@@ -102,7 +108,7 @@ export function printNextPage(encoderState) {
     // Draw initial superblocks
     for (let j = 0; j <= redundancy; j++) {
         const k = j * (nstring + 1);
-        drawBlock(k, rawSuperBlock, bits, width, effectiveHeight, encoderState.border, nx, encoderState.ny, dx, dy, px, py, black);
+        drawBlock(width, k, rawSuperBlock, effectiveHeight, encoderState.border, nx, encoderState.ny, dx, dy, px, py, bits);
     }
 
     for (let i = 0; i < nstring; i++) {
@@ -132,7 +138,7 @@ export function printNextPage(encoderState) {
             // Draw Data Block
             const k_data = j * (nstring + 1) + (i + 1);
             const rawDataBlockBuffer = packDataBlock(mockDataBlock); // Pack before drawing/ECC
-            drawBlock(k_data, rawDataBlockBuffer, bits, width, effectiveHeight, encoderState.border, nx, encoderState.ny, dx, dy, px, py, black);
+            drawBlock(width, k_data, rawDataBlockBuffer, effectiveHeight, encoderState.border, nx, encoderState.ny, dx, dy, px, py, bits);
 
             offset += NDATA;
         }
@@ -140,12 +146,12 @@ export function printNextPage(encoderState) {
         // Draw Redundancy Block
         const k_cksum = redundancy * (nstring + 1) + (i + 1);
         const rawCksumBlockBuffer = packDataBlock(mockCksumBlock); // Pack checksum block
-        drawBlock(k_cksum, rawCksumBlockBuffer, bits, width, effectiveHeight, encoderState.border, nx, encoderState.ny, dx, dy, px, py, black);
+        drawBlock(width, k_cksum, rawCksumBlockBuffer, effectiveHeight, encoderState.border, nx, encoderState.ny, dx, dy, px, py, bits);
     }
 
     // Draw remaining Superblocks in unused cells
     for (let k = (nstring + 1) * (redundancy + 1); k < nx * encoderState.ny; k++) {
-        drawBlock(k, rawSuperBlock, bits, width, effectiveHeight, encoderState.border, nx, encoderState.ny, dx, dy, px, py, black);
+        drawBlock(width, k, rawSuperBlock, effectiveHeight, encoderState.border, nx, encoderState.ny, dx, dy, px, py, bits);
     }
 
     // 6. Output Collection (BMP encoding)
@@ -160,12 +166,8 @@ export function printNextPage(encoderState) {
     if (!encoderState.outputFiles) {
         encoderState.outputFiles = [];
     }
-
-    encoderState.outputFiles.push(new BMPData({
-        fileName: outputFileName,
-        pageNumber: encoderState.frompage + 1,
-        data: new Uint8Array(bmpBuffer),
-    }));
+    const bmp = new BMPData(outputFileName, encoderState.frompage + 1,new Uint8Array(bmpBuffer) );
+    encoderState.outputFiles.push(bmp);
 
     // 7. Advance to Next Page
     encoderState.frompage++;

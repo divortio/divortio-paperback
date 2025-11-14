@@ -8,16 +8,18 @@
 export class BMPData {
     /**
      * Creates an instance of BMPData.
-     * @param {object} [props={}] - Optional initial property values.
+     * @param fileName {string}
+     * @param pageNumber {number}
+     * @param data {Uint8Array}
      */
-    constructor(props = {}) {
+    constructor(fileName, pageNumber, data) {
         /**
          * @public
          * @type {string}
          * @description The calculated filename for this page (e.g., file_0001.bmp).
          * @default ""
          */
-        this.fileName = props.fileName !== undefined ? props.fileName : "";
+        this.fileName = fileName !== undefined ? fileName : "";
 
         /**
          * @public
@@ -25,7 +27,7 @@ export class BMPData {
          * @description The page number (1-based) this data corresponds to.
          * @default 0
          */
-        this.pageNumber = props.pageNumber !== undefined ? props.pageNumber : 0;
+        this.pageNumber = pageNumber !== undefined ? pageNumber : 0;
 
         /**
          * @public
@@ -33,6 +35,6 @@ export class BMPData {
          * @description The complete binary data of the 8-bit paletted BMP file.
          * @default new Uint8Array(0)
          */
-        this.data = props.data instanceof Uint8Array ? props.data : new Uint8Array(0);
+        this.data = data instanceof Uint8Array ? data : new Uint8Array(0);
     }
 }

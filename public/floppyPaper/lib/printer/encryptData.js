@@ -71,7 +71,7 @@ export async function encryptData(encoderState, password = '') {
             throw new Error("AES encryption failed.");
         }
 
-        // --- Update State for HeaderBlock generation ---
+        // --- Update State for SuperData generation ---
 
         // The original C code stores Salt and IV in a hackish way inside the file name field of the t_superdata block.
         // We will pass the Salt and IV to the next step, which will correctly embed them in the header block.

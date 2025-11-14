@@ -16,11 +16,14 @@ export class ChecksumBlock extends DataBlock {
     /**
      * Creates an instance of ChecksumBlock.
      * It inherits the structure, properties, and the pack() method from DataBlock.
-     * @param {object} [props={}] - Optional initial property values.
      * @see C_TYPE: t_data
+     * @param addr {number}
+     * @param data {Uint8Array}
+     * @param crc {number}
+     * @param ecc {number}
      */
-    constructor(props = {}) {
-        super(props);
+    constructor(addr=0,data=null, crc=0,ecc=0) {
+        super(addr,data, crc,ecc);
         // No additional fields are needed as it uses the base t_data structure.
     }
 }

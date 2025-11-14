@@ -55,22 +55,19 @@ function drainOutput(strm) {
     if (strm._outputQueue.length > 0) {
         const availableOutput = concatenateUint8Arrays(strm._outputQueue);
         strm._outputQueue = [];
-
         const bytesToCopy = Math.min(availableOutput.length, strm.avail_out);
-
         if (bytesToCopy > 0) {
             // Copy data to the external buffer starting at the total_out offset
             strm.next_out.set(availableOutput.subarray(0, bytesToCopy), strm.total_out);
-
             strm.avail_out -= bytesToCopy;
             strm.total_out += bytesToCopy;
             outputBytesCopied = bytesToCopy;
-
             if (availableOutput.length > bytesToCopy) {
                 strm._outputQueue.push(availableOutput.subarray(bytesToCopy));
             }
         }
     }
+
     return outputBytesCopied;
 }
 
@@ -86,7 +83,7 @@ function drainOutput(strm) {
  * @param {number} workFactor - The work factor (0-250 in C, unused in JS).
  * @returns {number} BZ_OK on success, or an error code.
  */
-export function BZ2_bzCompressInit(strm, blockSize100k, verbosity, workFactor) {
+export function BZ2_bzCompressInit(strm, blockSize100k=9, verbosity=0, workFactor=0) {
     if (!strm) return BZ_PARAM_ERROR;
 
     try {
@@ -124,9 +121,7 @@ export function BZ2_bzCompress(strm, action) {
     if (action === BZ_RUN) {
         if (strm.avail_in > 0 && strm.next_in) {
             const inputChunk = strm.next_in.subarray(0, strm.avail_in);
-
             strm._pako.push(inputChunk, false);
-
             strm.total_in += strm.avail_in;
             strm.avail_in = 0;
         }

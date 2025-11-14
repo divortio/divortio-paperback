@@ -1,7 +1,7 @@
 /Users/moe/.nvm/versions/node/v24.10.0/bin/node /Users/moe/projects/divortio-paperback/public/floppyPaper/testSuite/testPageBytes.js
 
 
---- PrintPage Geometry and Capacity Test Suite (GFM Markdown) ---
+--- ImageDimensions Geometry and Capacity Test Suite (GFM Markdown) ---
 
 
 | DPI | Redundancy | BlocksX | BlocksY | MegaPixels | ImageSizeBytes | ImageSizeH | CapacityBytes | CapacityH |
